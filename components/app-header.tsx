@@ -3,7 +3,6 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { UserGreeting } from "@/components/user-greeting"
-import { LogoutButton } from "@/components/logout-button"
 
 const NAV_ITEMS = [
   { href: "/", label: "Tracker" },
@@ -49,7 +48,6 @@ export function AppHeader() {
           )
         )}
         <UserGreeting />
-        <LogoutButton />
       </nav>
     </header>
   )

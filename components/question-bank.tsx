@@ -2,7 +2,6 @@
 
 import { useMemo, useState } from "react"
 import { Search } from "lucide-react"
-import type { InterviewRound } from "@/lib/interview-data"
 import { OUTCOME_CONFIG, topicClass } from "@/lib/interview-data"
 import { cn } from "@/lib/utils"
 
@@ -10,6 +9,20 @@ const ALL = "All"
 
 function unique(values: string[]) {
   return [ALL, ...Array.from(new Set(values.filter(Boolean)))]
+}
+
+type DBQuestion = {
+  id: string
+  question: string
+  topicTag?: string | null
+}
+
+type DBRound = {
+  id: string
+  roundType: string
+  outcome?: string | null
+  questions: DBQuestion[]
+  company?: string
 }
 
 type BankRow = {
@@ -21,7 +34,7 @@ type BankRow = {
   outcome: string
 }
 
-export function QuestionBank({ rounds }: { rounds?: InterviewRound[] }) {
+export function QuestionBank({ rounds }: { rounds?: DBRound[] }) {
   const [query, setQuery] = useState("")
   const [topic, setTopic] = useState(ALL)
   const [round, setRound] = useState(ALL)
@@ -34,8 +47,8 @@ export function QuestionBank({ rounds }: { rounds?: InterviewRound[] }) {
         id: q.id,
         question: q.question,
         topic: q.topicTag ?? "General",
-        company: (r as any).company ?? "",
-        round: r.roundType ?? r.type ?? "",
+        company: r.company ?? "",
+        round: r.roundType ?? "",
         outcome: r.outcome ?? "pending",
       }))
     )

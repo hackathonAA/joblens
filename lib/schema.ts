@@ -58,6 +58,9 @@ export const interviewRounds = pgTable("interview_rounds", {
   scheduledAt: timestamp("scheduled_at", { withTimezone: true }),
   outcome: text("outcome"),
   notes: text("notes"),
+  overallExperience: text("overall_experience"),     // user's written experience summary
+  confidenceScore: integer("confidence_score"),      // 0-100 AI-computed round confidence
+  confidenceReason: text("confidence_reason"),       // AI explanation
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
 })
 
@@ -67,7 +70,9 @@ export const interviewQuestions = pgTable("interview_questions", {
   question: text("question").notNull(),
   topicTag: text("topic_tag"),
   whatISaid: text("what_i_said"),
-  whatIShouldHaveSaid: text("what_i_should_have_said"),
+  aiAnswer: text("ai_answer"),
+  rating: integer("rating"),                   // 1-10 AI-assigned rating for user's answer
+  aiRatingReason: text("ai_rating_reason"),    // explanation for the rating
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
 })
 

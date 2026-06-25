@@ -285,7 +285,7 @@ export function OfferAnalyzer() {
           {!loaded ? (
             <div className="flex flex-1 items-center justify-center rounded-lg border border-dashed border-border bg-card/30 p-8 text-center text-sm text-muted-foreground">
               {analyzing ? (
-                <span className="flex items-center gap-2"><Loader2 className="size-4 animate-spin" /> Claude is analyzing your offer…</span>
+                <span className="flex items-center gap-2"><Loader2 className="size-4 animate-spin" /> AI is analyzing your offer…</span>
               ) : (
                 "Upload or paste an offer letter to see a clause-by-clause breakdown."
               )}

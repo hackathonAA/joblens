@@ -6,6 +6,8 @@ import { applications, users, interviewRounds, interviewQuestions } from "@/lib/
 import { eq, and } from "drizzle-orm"
 import { getUserColumns } from "@/lib/column-defaults"
 
+export const dynamic = "force-dynamic"
+
 async function getUser(session: any) {
   if (!session?.user?.id) return null
   const [user] = await db.select().from(users).where(eq(users.cognitoSub, session.user.id))

@@ -26,6 +26,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   if (body.interviewerTitle !== undefined) allowed.interviewerTitle = body.interviewerTitle
   if (body.roundType !== undefined) allowed.roundType = body.roundType
   if (body.scheduledAt !== undefined) allowed.scheduledAt = body.scheduledAt ? new Date(body.scheduledAt) : null
+  if (body.overallExperience !== undefined) allowed.overallExperience = body.overallExperience
 
   const [round] = await db.update(interviewRounds).set(allowed).where(eq(interviewRounds.id, id)).returning()
   if (!round) return NextResponse.json({ error: "Not found" }, { status: 404 })

@@ -57,6 +57,8 @@ export function WarRoom() {
   const [form, setForm] = useState<FormState>(EMPTY_FORM)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editDraft, setEditDraft] = useState<Record<string, string>>({})
+  const [aiInsights, setAiInsights] = useState<{ recommendation: string; negotiationTips: string[] } | null>(null)
+  const [aiLoading, setAiLoading] = useState(false)
 
   useEffect(() => {
     Promise.all([
@@ -67,6 +69,28 @@ export function WarRoom() {
       if (Array.isArray(appsData)) setApplications(appsData.map((a: any) => ({ id: a.id, company: a.company, role: a.role, salaryMin: a.salaryMin, salaryMax: a.salaryMax })))
     }).finally(() => setLoading(false))
   }, [])
+
+  async function fetchAiInsights(currentOffers: OfferWithRaw[]) {
+    if (currentOffers.length === 0) return
+    setAiLoading(true)
+    setAiInsights(null)
+    try {
+      const res = await fetch("/api/war-room-insights", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ offers: currentOffers }),
+      })
+      const data = await res.json()
+      if (data.recommendation) setAiInsights(data)
+    } finally {
+      setAiLoading(false)
+    }
+  }
+
+  // Fetch AI insights whenever offers list changes
+  useEffect(() => {
+    if (!loading && offers.length > 0) fetchAiInsights(offers)
+  }, [offers.length, loading])
 
   // Merge draft values into the editing offer so calculations update live
   const liveOffers = useMemo(() => offers.map(o => {
@@ -343,28 +367,55 @@ export function WarRoom() {
       )}
 
       {/* Negotiation tips */}
-      {liveOffers.length >= 2 && winner && (
+      {liveOffers.length >= 2 && winner && !aiInsights && !aiLoading && (
         <NegotiationTips offers={liveOffers} winner={winner} />
       )}
 
-      {/* AI recommendation */}
-      {winner && (
+      {/* AI Insights */}
+      {liveOffers.length > 0 && (
         <div className="rounded-xl border border-primary/30 bg-primary/5 p-5 shadow-sm">
-          <div className="flex items-center gap-2">
-            <span className="flex size-7 items-center justify-center rounded-md bg-primary/15 text-primary">
-              <Sparkles className="size-4" />
-            </span>
-            <h2 className="text-sm font-bold text-foreground">JobLens Recommendation</h2>
+          <div className="flex items-center justify-between gap-2 mb-3">
+            <div className="flex items-center gap-2">
+              <span className="flex size-7 items-center justify-center rounded-md bg-primary/15 text-primary">
+                <Sparkles className="size-4" />
+              </span>
+              <h2 className="text-sm font-bold text-foreground">AI Recommendation</h2>
+              <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">Powered by Amazon Nova</span>
+            </div>
+            <button onClick={() => fetchAiInsights(liveOffers)} disabled={aiLoading}
+              className="text-xs text-muted-foreground hover:text-foreground disabled:opacity-40 flex items-center gap-1">
+              <Loader2 className={`size-3 ${aiLoading ? "animate-spin" : ""}`} />
+              {aiLoading ? "Analyzing…" : "Refresh"}
+            </button>
           </div>
-          <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-            Take the <strong className="text-foreground">{winner.company}</strong> offer.
-            On a 4-year basis it delivers the strongest risk-adjusted total comp (~{fmtMoney(totalComp(winner))}/yr).
-            {offers.length > 1 && (
-              <> The gap vs. the next offer is <strong className="text-foreground">
-                {fmtMoney(Math.abs(totalComp(winner) - totalComp(liveOffers.find(o => o.id !== winner.id)!)))}
-              </strong>/yr — use any competing offer as leverage to negotiate the signing bonus up before you sign.</>
-            )}
-          </p>
+
+          {aiLoading ? (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Loader2 className="size-4 animate-spin" />
+              Claude is analyzing your offers…
+            </div>
+          ) : aiInsights ? (
+            <div className="flex flex-col gap-4">
+              <p className="text-sm leading-relaxed text-muted-foreground">{aiInsights.recommendation}</p>
+              {aiInsights.negotiationTips?.length > 0 && (
+                <div>
+                  <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground flex items-center gap-1.5">
+                    <AlertTriangle className="size-3.5 text-amber-400" /> Negotiation Playbook
+                  </p>
+                  <ul className="flex flex-col gap-2">
+                    {aiInsights.negotiationTips.map((tip, i) => (
+                      <li key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
+                        <span className="mt-1 size-1.5 shrink-0 rounded-full bg-primary" />
+                        {tip}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">Add at least one offer to get AI-powered recommendations.</p>
+          )}
         </div>
       )}
     </div>
