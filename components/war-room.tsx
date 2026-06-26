@@ -2,8 +2,6 @@
 
 import { useEffect, useMemo, useState } from "react"
 import { Plus, Trophy, X, Sparkles, Loader2, Pencil, Check, TrendingUp, AlertTriangle, RefreshCw } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { TwoZone } from "@/components/two-zone"
 import {
   type Offer,
   REC_CONFIG,
@@ -73,7 +71,6 @@ export function WarRoom() {
     ]).then(([offersData, appsData, colsData]) => {
       if (Array.isArray(offersData)) setOffers(offersData.map((o, i) => dbOfferToOffer(o, i)))
       if (Array.isArray(appsData) && Array.isArray(colsData)) {
-        // Only show apps that are past the default (Applied) column and not rejected
         const excludeKeys = new Set<string>([
           ...colsData.filter((c: any) => c.isDefault || c.isRejected).map((c: any) => c.columnKey)
         ])
@@ -94,11 +91,7 @@ export function WarRoom() {
       const res = await fetch("/api/war-room-insights", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          offers: currentOffers,
-          currency: currency.symbol,
-          currencyCode: currency.code,
-        }),
+        body: JSON.stringify({ offers: currentOffers, currency: currency.symbol, currencyCode: currency.code }),
       })
       const data = await res.json()
       if (data.recommendation) setAiInsights(data)
@@ -107,12 +100,10 @@ export function WarRoom() {
     }
   }
 
-  // Initial AI load
   useEffect(() => {
     if (!loading && offers.length > 0) fetchAiInsights(offers)
   }, [loading])
 
-  // Merge draft values into the editing offer so calculations update live
   const liveOffers = useMemo(() => offers.map(o => {
     if (o.id !== editingId) return o
     const base = parseInt(editDraft.baseSalary) || o.baseSalary
@@ -132,7 +123,7 @@ export function WarRoom() {
 
   const winnersByRow = useMemo(() => {
     const map: Record<string, Set<string>> = {}
-    if (liveOffers.length < 2) return map  // no comparison with single offer
+    if (liveOffers.length < 2) return map
     const ROWS = getRows(liveOffers, editingId, editDraft, () => {}, sym)
     for (const row of ROWS) {
       if (row.better === "none") { map[row.key] = new Set(); continue }
@@ -182,18 +173,14 @@ export function WarRoom() {
     if (updated.id) {
       const newOffers = offers.map((o, i) => o.id === id ? dbOfferToOffer(updated, i) : o)
       setOffers(newOffers)
-      // Also sync salary back to tracker application
       const offer = offers.find(o => o.id === id)
       if (offer?._raw.applicationId) {
         await fetch(`/api/applications/${offer._raw.applicationId}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            salaryMin: parseInt(editDraft.baseSalary) || 0,
-          }),
+          body: JSON.stringify({ salaryMin: parseInt(editDraft.baseSalary) || 0 }),
         })
       }
-      // Refresh AI insights after edit
       fetchAiInsights(newOffers)
     }
     setEditingId(null)
@@ -208,13 +195,10 @@ export function WarRoom() {
   async function handleAddOffer(e: React.FormEvent) {
     e.preventDefault()
     setDuplicateError("")
-
-    // Prevent adding the same application twice
     if (offers.some(o => o._raw.applicationId === form.applicationId)) {
       setDuplicateError("This application is already in the War Room.")
       return
     }
-
     setSaving(true)
     const res = await fetch("/api/offers", {
       method: "POST",
@@ -239,284 +223,250 @@ export function WarRoom() {
     setSaving(false)
   }
 
-  if (loading) return <p className="text-sm text-muted-foreground py-8">Loading offers…</p>
+  if (loading) return <p className="text-sm text-muted-foreground px-8 py-12">Loading offers…</p>
 
-  // Filter out applications already in war room
   const existingOfferAppIds = new Set(offers.map(o => o._raw.applicationId))
   const availableApps = applications.filter(a => !existingOfferAppIds.has(a.id))
 
   const ROWS = getRows(liveOffers, editingId, editDraft, (key, val) => setEditDraft(d => ({ ...d, [key]: val })), sym)
   const gridCols = { gridTemplateColumns: `minmax(160px, 1fr) repeat(${Math.max(liveOffers.length, 1)}, minmax(180px, 1.4fr))` }
 
-  const leftPanel = (
-    <>
-      {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-        <span className="label-caps text-muted-foreground">Offers</span>
+  return (
+    <div className="px-8 py-7">
+
+      {/* Page header */}
+      <div className="mb-6 flex items-end justify-between">
+        <div>
+          <h1 className="text-xl font-bold tracking-tight text-foreground">War Room</h1>
+          <p className="mt-0.5 text-sm text-muted-foreground">Compare offers side-by-side and find your best move.</p>
+        </div>
         {liveOffers.length < 3 && (
           <button
             onClick={() => { setShowForm(v => !v); setDuplicateError("") }}
-            className="flex items-center gap-1 rounded-lg bg-primary/15 px-2.5 py-1.5 text-xs font-medium text-primary hover:bg-primary/25 transition-colors"
+            className="flex items-center gap-1.5 rounded-lg bg-primary/15 px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary/25 transition-colors"
           >
-            <Plus className="size-3" /> Add Offer
+            <Plus className="size-3.5" /> Add Offer
           </button>
         )}
       </div>
 
-      {/* Add form — inline below header */}
+      {/* Add offer form */}
       {showForm && (
-        <form onSubmit={handleAddOffer} className="border-b border-border p-4 flex flex-col gap-3">
-          <div>
-            <label className="mb-1 block text-xs font-medium text-muted-foreground">Application *</label>
-            <select required value={form.applicationId} onChange={e => {
-                const app = applications.find(a => a.id === e.target.value)
-                setDuplicateError("")
-                setForm(f => ({ ...f, applicationId: e.target.value, baseSalary: app?.salaryMin ? String(app.salaryMin) : f.baseSalary }))
-              }}
-              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:ring-1 focus:ring-primary">
-              <option value="">Select application…</option>
-              {availableApps.map(a => <option key={a.id} value={a.id}>{a.company} — {a.role}</option>)}
-            </select>
-            {duplicateError && <p className="mt-1 text-xs text-red-400">{duplicateError}</p>}
-          </div>
-          <div className="grid grid-cols-2 gap-2">
+        <form onSubmit={handleAddOffer} className="mb-6 rounded-xl border border-border bg-card p-5 flex flex-col gap-4">
+          <h3 className="text-sm font-semibold text-foreground">Add Offer</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="sm:col-span-2 lg:col-span-3">
+              <label className="mb-1 block text-xs font-medium text-muted-foreground">Application *</label>
+              <select required value={form.applicationId} onChange={e => {
+                  const app = applications.find(a => a.id === e.target.value)
+                  setDuplicateError("")
+                  setForm(f => ({ ...f, applicationId: e.target.value, baseSalary: app?.salaryMin ? String(app.salaryMin) : f.baseSalary }))
+                }}
+                className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:ring-1 focus:ring-primary">
+                <option value="">Select application…</option>
+                {availableApps.map(a => <option key={a.id} value={a.id}>{a.company} — {a.role}</option>)}
+              </select>
+              {duplicateError && <p className="mt-1 text-xs text-red-400">{duplicateError}</p>}
+            </div>
             {([
-              { key: "baseSalary", label: `Base (${sym})` },
-              { key: "equityValue", label: `Equity (${sym})` },
-              { key: "signingBonus", label: `Signing (${sym})` },
-              { key: "cliffMonths", label: "Cliff (mo)" },
+              { key: "baseSalary", label: `Base Salary (${sym})` },
+              { key: "equityValue", label: `Equity Value (${sym})` },
+              { key: "signingBonus", label: `Signing Bonus (${sym})` },
+              { key: "cliffMonths", label: "Cliff (months)" },
             ] as const).map(({ key, label }) => (
               <div key={key}>
-                <label className="mb-1 block text-[10px] font-medium text-muted-foreground">{label}</label>
+                <label className="mb-1 block text-xs font-medium text-muted-foreground">{label}</label>
                 <input type="number" value={(form as any)[key]}
                   onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))}
-                  className="w-full rounded-lg border border-border bg-background px-2 py-1.5 text-sm text-foreground outline-none focus:ring-1 focus:ring-primary" />
+                  className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:ring-1 focus:ring-primary" />
               </div>
             ))}
-          </div>
-          <div>
-            <label className="mb-1 block text-[10px] font-medium text-muted-foreground">Vesting</label>
-            <input value={form.vestingSchedule} onChange={e => setForm(f => ({ ...f, vestingSchedule: e.target.value }))}
-              className="w-full rounded-lg border border-border bg-background px-2 py-1.5 text-sm text-foreground outline-none focus:ring-1 focus:ring-primary" />
+            <div>
+              <label className="mb-1 block text-xs font-medium text-muted-foreground">Vesting Schedule</label>
+              <input value={form.vestingSchedule} onChange={e => setForm(f => ({ ...f, vestingSchedule: e.target.value }))}
+                className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:ring-1 focus:ring-primary" />
+            </div>
           </div>
           <div className="flex gap-2">
             <button type="submit" disabled={saving || !form.applicationId}
-              className="flex items-center gap-2 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-50">
-              {saving && <Loader2 className="size-3 animate-spin" />} Save
+              className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-50">
+              {saving && <Loader2 className="size-3.5 animate-spin" />} Save Offer
             </button>
             <button type="button" onClick={() => { setShowForm(false); setForm(EMPTY_FORM); setDuplicateError("") }}
-              className="rounded-lg border border-border px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground">
+              className="rounded-lg border border-border px-4 py-2 text-sm text-muted-foreground hover:text-foreground">
               Cancel
             </button>
           </div>
         </form>
       )}
 
-      {/* Offer list */}
       {liveOffers.length === 0 ? (
-        <div className="flex flex-col items-center justify-center px-4 py-10 text-center">
-          <TrendingUp className="size-6 text-muted-foreground mb-2" />
-          <p className="text-sm text-muted-foreground">No offers yet. Add one to compare.</p>
+        <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border py-24 text-center">
+          <TrendingUp className="size-8 text-muted-foreground/40 mb-3" />
+          <p className="text-sm font-medium text-foreground">No offers yet</p>
+          <p className="mt-1 text-sm text-muted-foreground">Click "Add Offer" to start comparing.</p>
         </div>
       ) : (
-        <div className="flex flex-col divide-y divide-border">
-          {liveOffers.map((offer) => {
-            const isWinner = winner?.id === offer.id
-            return (
-              <div key={offer.id} className={cn(
-                "flex flex-col gap-0.5 px-4 py-3 transition-colors",
-                isWinner && "bg-secondary/40 border-l-2 border-l-[oklch(0.70_0.14_162)]",
-              )}>
-                <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <span className={cn("size-7 shrink-0 rounded-lg flex items-center justify-center text-[10px] font-bold", offer.logo)}>
-                      {offer.initials}
+        <div className="flex flex-col gap-6">
+
+          {/* Offer cards strip */}
+          <div className={cn("grid gap-4", liveOffers.length === 1 ? "grid-cols-1 max-w-sm" : liveOffers.length === 2 ? "grid-cols-2 max-w-2xl" : "grid-cols-3")}>
+            {liveOffers.map(o => {
+              const tc = totalComp(o)
+              const isWinner = winner?.id === o.id
+              return (
+                <div key={o.id} className={cn(
+                  "rounded-2xl border bg-card p-5 flex flex-col gap-3 relative",
+                  isWinner && liveOffers.length > 1
+                    ? "border-[oklch(0.70_0.14_162)]/40 bg-[oklch(0.70_0.14_162)]/5"
+                    : "border-border"
+                )}>
+                  {isWinner && liveOffers.length > 1 && (
+                    <span className="absolute top-3 right-3 text-[10px] font-semibold text-[oklch(0.70_0.14_162)] flex items-center gap-1">
+                      <Trophy className="size-3" />Top pick
                     </span>
+                  )}
+                  <div className="flex items-center gap-3">
+                    <span className={cn("flex size-10 items-center justify-center rounded-xl text-sm font-bold", o.logo)}>{o.initials}</span>
                     <div className="min-w-0">
-                      <p className="truncate text-sm font-semibold text-foreground">{offer.company}</p>
-                      <p className="truncate text-[11px] text-muted-foreground">{offer.role}</p>
+                      <p className="font-bold text-card-foreground truncate">{o.company}</p>
+                      <p className="text-xs text-muted-foreground truncate">{o.role}</p>
+                    </div>
+                    <div className="ml-auto flex items-center gap-1 shrink-0">
+                      {editingId === o.id ? (
+                        <button onClick={() => saveEdit(o.id)} disabled={saving} className="rounded p-1 text-emerald-400 hover:bg-secondary">
+                          {saving ? <Loader2 className="size-3.5 animate-spin" /> : <Check className="size-3.5" />}
+                        </button>
+                      ) : (
+                        <button onClick={() => startEdit(o)} className="rounded p-1 text-muted-foreground hover:bg-secondary hover:text-foreground">
+                          <Pencil className="size-3.5" />
+                        </button>
+                      )}
+                      <button onClick={() => deleteOffer(o.id)} className="rounded p-1 text-muted-foreground hover:bg-secondary hover:text-red-400">
+                        <X className="size-3.5" />
+                      </button>
                     </div>
                   </div>
-                  <div className="flex items-center gap-1 shrink-0">
-                    {isWinner && <Trophy className="size-3 text-[oklch(0.70_0.14_162)]" />}
-                    {editingId === offer.id ? (
-                      <button onClick={() => saveEdit(offer.id)} disabled={saving} className="rounded p-0.5 text-emerald-400 hover:bg-secondary">
-                        {saving ? <Loader2 className="size-3.5 animate-spin" /> : <Check className="size-3.5" />}
-                      </button>
-                    ) : (
-                      <button onClick={() => startEdit(offer)} className="rounded p-0.5 text-muted-foreground hover:bg-secondary hover:text-foreground">
-                        <Pencil className="size-3.5" />
-                      </button>
-                    )}
-                    <button onClick={() => deleteOffer(offer.id)} className="rounded p-0.5 text-muted-foreground hover:bg-secondary hover:text-red-400">
-                      <X className="size-3.5" />
-                    </button>
+                  <div>
+                    <span className="font-num text-3xl font-black text-card-foreground leading-none">{fmtMoney(tc, sym)}</span>
+                    <span className="ml-1.5 text-xs text-muted-foreground">/yr total comp</span>
                   </div>
+                  <div className="text-xs text-muted-foreground">
+                    Base {fmtMoney(o.baseSalary, sym)} + Equity {fmtMoney(o.equityValue / 4, sym)}/yr
+                  </div>
+                  {editingId === o.id && (
+                    <span className="text-[11px] text-primary">Editing in table below — click ✓ to save</span>
+                  )}
                 </div>
-                <div className="flex items-baseline gap-1.5 pl-9">
-                  <span className="font-num text-base font-bold text-foreground">{fmtMoney(totalComp(offer), sym)}</span>
-                  <span className="text-[10px] text-muted-foreground">total comp</span>
-                </div>
-              </div>
-            )
-          })}
-        </div>
-      )}
-    </>
-  )
+              )
+            })}
+          </div>
 
-  return (
-    <TwoZone left={leftPanel} className="flex-1 min-h-0">
-      <div className="flex flex-col h-full">
-        {/* AI verdict banner — pinned at top of canvas */}
-        {(aiInsights || aiLoading) && (
-          <div className="shrink-0 border-b border-border bg-primary/5 px-6 py-4">
-            <div className="flex items-start gap-3">
-              <Sparkles className="size-4 shrink-0 text-primary mt-0.5" />
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1">
-                  <p className="label-caps text-primary">AI Recommendation</p>
-                  <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">Amazon Nova</span>
-                </div>
-                {aiLoading ? (
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Loader2 className="size-3.5 animate-spin" />
-                    Analyzing your offer{liveOffers.length > 1 ? "s" : ""}…
+          {/* AI verdict banner */}
+          {(aiInsights || aiLoading) && (
+            <div className="rounded-2xl border border-primary/20 bg-primary/5 px-6 py-5">
+              <div className="flex items-start gap-3">
+                <Sparkles className="size-4 shrink-0 text-primary mt-0.5" />
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-2">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-primary">AI Recommendation</p>
+                    <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">Amazon Nova</span>
                   </div>
-                ) : aiInsights ? (
-                  <>
-                    <p className="text-sm text-foreground leading-relaxed">{aiInsights.recommendation}</p>
-                    {aiInsights.negotiationTips?.length > 0 && (
-                      <ul className="mt-2 space-y-1">
-                        {aiInsights.negotiationTips.map((tip, i) => (
-                          <li key={i} className="flex items-start gap-1.5 text-xs text-muted-foreground">
-                            <span className="text-primary mt-0.5 shrink-0">·</span> {tip}
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                  </>
-                ) : null}
+                  {aiLoading ? (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Loader2 className="size-3.5 animate-spin" />
+                      Analyzing your offer{liveOffers.length > 1 ? "s" : ""}…
+                    </div>
+                  ) : aiInsights ? (
+                    <>
+                      <p className="text-sm text-foreground leading-relaxed">{aiInsights.recommendation}</p>
+                      {aiInsights.negotiationTips?.length > 0 && (
+                        <ul className="mt-3 space-y-1.5">
+                          {aiInsights.negotiationTips.map((tip, i) => (
+                            <li key={i} className="flex items-start gap-2 text-xs text-muted-foreground">
+                              <span className="text-primary mt-0.5 shrink-0">·</span> {tip}
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </>
+                  ) : null}
+                </div>
+                <button onClick={() => fetchAiInsights(liveOffers)} disabled={aiLoading}
+                  className="shrink-0 text-muted-foreground hover:text-foreground disabled:opacity-40 flex items-center gap-1 text-xs">
+                  <RefreshCw className={cn("size-3.5", aiLoading && "animate-spin")} />
+                </button>
               </div>
-              <button onClick={() => fetchAiInsights(liveOffers)} disabled={aiLoading}
-                className="shrink-0 text-muted-foreground hover:text-foreground disabled:opacity-40 flex items-center gap-1 text-xs">
-                <RefreshCw className={cn("size-3", aiLoading && "animate-spin")} />
-              </button>
+            </div>
+          )}
+
+          {!aiInsights && !aiLoading && liveOffers.length > 0 && (
+            <button
+              onClick={() => fetchAiInsights(liveOffers)}
+              className="self-start flex items-center gap-2 rounded-xl border border-primary/30 px-4 py-2.5 text-sm text-primary hover:bg-primary/10 transition-colors"
+            >
+              <Sparkles className="size-4" /> Get AI recommendation
+            </button>
+          )}
+
+          {/* Comparison table */}
+          <div className="overflow-x-auto rounded-xl border border-border bg-card shadow-sm">
+            <div className="min-w-fit">
+              <div className="grid items-stretch border-b border-border" style={gridCols}>
+                <div className="flex items-end p-4">
+                  <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Offer details</span>
+                </div>
+                {liveOffers.map(o => (
+                  <div key={o.id} className={cn("relative border-l border-border p-4", winner?.id === o.id && liveOffers.length > 1 && "bg-[oklch(0.70_0.14_162)]/5")}>
+                    <div className="flex items-center gap-2.5">
+                      <span className={cn("flex size-9 shrink-0 items-center justify-center rounded-xl text-sm font-bold", o.logo)}>{o.initials}</span>
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-bold text-card-foreground">{o.company}</p>
+                        <p className="truncate text-xs text-muted-foreground">{o.role}</p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              {ROWS.map((row, i) => (
+                <div key={row.key} className={cn("grid items-center", i !== ROWS.length - 1 && "border-b border-border")} style={gridCols}>
+                  <div className="p-4 text-sm font-medium text-muted-foreground">{row.label}</div>
+                  {liveOffers.map(o => {
+                    const isBest = liveOffers.length > 1 && winnersByRow[row.key]?.has(o.id)
+                    const isEditing = editingId === o.id
+                    return (
+                      <div key={o.id} className={cn("border-l border-border p-4 text-sm text-card-foreground", isBest && !isEditing && "bg-emerald-500/10")}>
+                        <div className="flex items-center gap-1.5">
+                          {isBest && !isEditing && <span className="size-1.5 shrink-0 rounded-full bg-emerald-400" />}
+                          <span className={cn(isBest && !isEditing && "font-semibold text-emerald-400")}>
+                            {row.render(o, isEditing)}
+                          </span>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              ))}
             </div>
           </div>
-        )}
 
-        {/* Canvas scrollable content */}
-        <div className="flex-1 overflow-y-auto p-6">
-          {liveOffers.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full text-center">
-              <TrendingUp className="size-8 text-muted-foreground mb-3" />
-              <p className="text-sm font-medium text-foreground">No offers yet</p>
-              <p className="mt-1 text-sm text-muted-foreground">Add an offer to start comparing.</p>
-            </div>
-          ) : (
-            <>
-              {/* Summary cards */}
-              <div className={cn("grid gap-3 mb-6", liveOffers.length === 1 ? "grid-cols-1 max-w-sm" : "grid-cols-3")}>
-                {liveOffers.map(o => {
-                  const tc = totalComp(o)
-                  const isWinner = winner?.id === o.id
-                  return (
-                    <div key={o.id} className={cn("rounded-xl border border-border bg-card p-4 flex flex-col gap-2", isWinner && "border-[oklch(0.70_0.14_162)]/40 bg-[oklch(0.70_0.14_162)]/5")}>
-                      <div className="flex items-center justify-between">
-                        <span className={cn("flex size-8 items-center justify-center rounded-full text-xs font-bold", o.logo)}>{o.initials}</span>
-                        {isWinner && <span className="text-[10px] font-semibold text-[oklch(0.70_0.14_162)] flex items-center gap-1"><Trophy className="size-3" />Top pick</span>}
-                      </div>
-                      <div>
-                        <p className="text-sm font-bold text-card-foreground">{o.company}</p>
-                        <p className="text-xs text-muted-foreground">{o.role}</p>
-                      </div>
-                      <div className="mt-1">
-                        <span className="font-num text-xl font-bold text-card-foreground">{fmtMoney(tc, sym)}</span>
-                        <span className="text-xs text-muted-foreground ml-1">/yr total comp</span>
-                      </div>
-                      <p className="text-xs text-muted-foreground">
-                        Base {fmtMoney(o.baseSalary, sym)} + Equity {fmtMoney(o.equityValue / 4, sym)}/yr
-                      </p>
-                    </div>
-                  )
-                })}
-              </div>
-
-              {/* Comparison table */}
-              <div className="overflow-x-auto rounded-xl border border-border bg-card shadow-sm">
-                <div className="min-w-fit">
-                  <div className="grid items-stretch border-b border-border" style={gridCols}>
-                    <div className="flex items-end p-4">
-                      <span className="label-caps text-muted-foreground">Offer details</span>
-                    </div>
-                    {liveOffers.map(o => (
-                      <div key={o.id} className={cn("relative border-l border-border p-4", winner?.id === o.id && liveOffers.length > 1 && "bg-[oklch(0.70_0.14_162)]/5")}>
-                        <div className="flex items-center gap-2.5 pr-4">
-                          <span className={cn("flex size-9 shrink-0 items-center justify-center rounded-full text-sm font-bold", o.logo)}>{o.initials}</span>
-                          <div className="min-w-0">
-                            <p className="truncate text-sm font-bold text-card-foreground">{o.company}</p>
-                            <p className="truncate text-xs text-muted-foreground">{o.role}</p>
-                          </div>
-                        </div>
-                        {editingId === o.id && <span className="mt-2 inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary">Editing — click ✓ to save</span>}
-                      </div>
-                    ))}
-                  </div>
-                  {ROWS.map((row, i) => (
-                    <div key={row.key} className={cn("grid items-center", i !== ROWS.length - 1 && "border-b border-border")} style={gridCols}>
-                      <div className="p-4 text-sm font-medium text-muted-foreground">{row.label}</div>
-                      {liveOffers.map(o => {
-                        const isBest = liveOffers.length > 1 && winnersByRow[row.key]?.has(o.id)
-                        const isEditing = editingId === o.id
-                        return (
-                          <div key={o.id} className={cn("border-l border-border p-4 text-sm text-card-foreground", isBest && !isEditing && "bg-emerald-500/10")}>
-                            <div className="flex items-center gap-1.5">
-                              {isBest && !isEditing && <span className="size-1.5 shrink-0 rounded-full bg-emerald-400" />}
-                              <span className={cn(isBest && !isEditing && "font-semibold text-emerald-400")}>
-                                {row.render(o, isEditing)}
-                              </span>
-                            </div>
-                          </div>
-                        )
-                      })}
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Negotiation tips */}
-              {liveOffers.length >= 2 && winner && !aiInsights && !aiLoading && (
-                <div className="mt-6">
-                  <NegotiationTips offers={liveOffers} winner={winner} sym={sym} />
-                </div>
-              )}
-
-              {/* AI trigger (if no insights yet) */}
-              {!aiInsights && !aiLoading && liveOffers.length > 0 && (
-                <button
-                  onClick={() => fetchAiInsights(liveOffers)}
-                  className="mt-4 flex items-center gap-2 rounded-xl border border-primary/30 px-4 py-2.5 text-sm text-primary hover:bg-primary/10 transition-colors"
-                >
-                  <Sparkles className="size-4" /> Get AI recommendation
-                </button>
-              )}
-            </>
+          {/* Negotiation tips */}
+          {liveOffers.length >= 2 && winner && !aiInsights && !aiLoading && (
+            <NegotiationTips offers={liveOffers} winner={winner} sym={sym} />
           )}
         </div>
-      </div>
-    </TwoZone>
+      )}
+    </div>
   )
 }
+
 function NegotiationTips({ offers, winner, sym = "₹" }: { offers: OfferWithRaw[]; winner: Offer; sym?: string }) {
   const loser = offers.find(o => o.id !== winner.id)
   if (!loser) return null
-  const gap = totalComp(winner) - totalComp(loser)
   const signingGap = winner.signingBonus - loser.signingBonus
   const equityGap = winner.equityValue - loser.equityValue
 
   const tips: { icon: React.ReactNode; text: string }[] = []
-
   if (loser.baseSalary > 0 && loser.baseSalary < winner.baseSalary) {
     tips.push({
       icon: <TrendingUp className="size-3.5 text-amber-400" />,
@@ -526,13 +476,13 @@ function NegotiationTips({ offers, winner, sym = "₹" }: { offers: OfferWithRaw
   if (signingGap > 0) {
     tips.push({
       icon: <TrendingUp className="size-3.5 text-blue-400" />,
-      text: `${loser.company}'s signing bonus is ${fmtMoney(signingGap, sym)} lower. Ask them to bridge this as a one-time payment — it costs them less than a salary increase.`,
+      text: `${loser.company}'s signing bonus is ${fmtMoney(signingGap, sym)} lower. Ask them to bridge this as a one-time payment.`,
     })
   }
   if (equityGap > 0) {
     tips.push({
       icon: <TrendingUp className="size-3.5 text-emerald-400" />,
-      text: `Equity delta is ${fmtMoney(equityGap, sym)}. If ${loser.company} can't match on cash, ask for additional equity options to compensate.`,
+      text: `Equity delta is ${fmtMoney(equityGap, sym)}. If ${loser.company} can't match on cash, ask for additional equity options.`,
     })
   }
   tips.push({

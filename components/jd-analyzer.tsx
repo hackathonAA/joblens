@@ -4,7 +4,6 @@ import { useState, useEffect } from "react"
 import { Sparkles, Loader2, CheckCircle, AlertTriangle, Info, Link2, X } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useSearchParams } from "next/navigation"
-import { TwoZone } from "@/components/two-zone"
 
 type JDResult = {
   requiredSkills: string[]
@@ -73,7 +72,6 @@ export function JdAnalyzer() {
         if (Array.isArray(data)) setApps(data.map(a => ({ id: a.id, company: a.company, role: a.role })))
       })
       .catch(() => {})
-    // Check profile completeness
     fetch("/api/profile")
       .then(r => r.ok ? r.json() : null)
       .then((profile: any) => {
@@ -122,53 +120,16 @@ export function JdAnalyzer() {
   }
 
   return (
-    <TwoZone
-      left={
-        <div className="flex flex-col gap-4 p-4 h-full">
-          <p className="label-caps text-muted-foreground">Job Description</p>
+    <div className="px-8 py-7">
 
-          <textarea
-            value={jd}
-            onChange={e => { setJd(e.target.value); setCharCount(e.target.value.length) }}
-            placeholder={"Paste the full job description here…\n\nInclude role summary, requirements, and nice-to-haves."}
-            className="flex-1 resize-none rounded-xl border border-border bg-background/60 p-3 text-[13px] leading-relaxed text-card-foreground outline-none transition-colors placeholder:text-muted-foreground/40 focus:border-primary/60 focus:ring-1 focus:ring-primary/40 font-mono"
-          />
+      {/* Page header */}
+      <div className="mb-6">
+        <h1 className="text-xl font-bold tracking-tight text-foreground">JD Analyzer</h1>
+        <p className="mt-0.5 text-sm text-muted-foreground">Paste a job description to extract skills, red flags, and your fit score.</p>
+      </div>
 
-          <div className="flex items-center gap-3 rounded-lg border border-border bg-background/40 px-3 py-2">
-            <Link2 className="size-3.5 text-muted-foreground shrink-0" />
-            <select
-              value={linkedAppId}
-              onChange={e => setLinkedAppId(e.target.value)}
-              className="flex-1 bg-transparent text-sm text-foreground outline-none"
-            >
-              <option value="">Link to application (optional)</option>
-              {apps.map(a => (
-                <option key={a.id} value={a.id}>{a.company} — {a.role}</option>
-              ))}
-            </select>
-            {linkedAppId && (
-              <button onClick={() => setLinkedAppId("")} className="text-muted-foreground hover:text-foreground">
-                <X className="size-3" />
-              </button>
-            )}
-          </div>
+      <div className="mx-auto max-w-4xl flex flex-col gap-6">
 
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] text-muted-foreground">{charCount} chars</span>
-            <button
-              onClick={analyze}
-              disabled={loading || !jd.trim()}
-              className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-50 transition-opacity"
-            >
-              {loading ? <Loader2 className="size-3.5 animate-spin" /> : <Sparkles className="size-3.5" />}
-              {loading ? "Analyzing…" : "Analyze JD"}
-            </button>
-          </div>
-        </div>
-      }
-      className="flex-1 min-h-0"
-    >
-      <div className="flex flex-col gap-4 p-6 overflow-y-auto">
         {/* Profile completeness nudge */}
         {!profileComplete && missingFields.length > 0 && (
           <div className="flex items-start gap-3 rounded-xl border border-yellow-500/30 bg-yellow-500/5 px-4 py-3">
@@ -184,14 +145,49 @@ export function JdAnalyzer() {
           </div>
         )}
 
-        {!result && !loading && (
-          <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border py-20 text-center">
-            <Sparkles className="size-8 text-muted-foreground/40 mb-3" />
-            <p className="text-sm font-medium text-muted-foreground">Paste a JD and click Analyze</p>
-            <p className="mt-1 text-xs text-muted-foreground/70">AI will extract skills, red flags, and score your fit</p>
-          </div>
-        )}
+        {/* Input area */}
+        <div className="rounded-2xl border border-border bg-card p-5 flex flex-col gap-4">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Job Description</p>
+          <textarea
+            value={jd}
+            onChange={e => { setJd(e.target.value); setCharCount(e.target.value.length) }}
+            placeholder={"Paste the full job description here…\n\nInclude role summary, requirements, and nice-to-haves."}
+            rows={10}
+            className="w-full resize-none rounded-xl border border-border bg-background/60 p-4 text-[13px] leading-relaxed text-card-foreground outline-none transition-colors placeholder:text-muted-foreground/40 focus:border-primary/60 focus:ring-1 focus:ring-primary/40 font-mono"
+          />
 
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 flex-1 rounded-lg border border-border bg-background/40 px-3 py-2">
+              <Link2 className="size-3.5 text-muted-foreground shrink-0" />
+              <select
+                value={linkedAppId}
+                onChange={e => setLinkedAppId(e.target.value)}
+                className="flex-1 bg-transparent text-sm text-foreground outline-none"
+              >
+                <option value="">Link to application (optional)</option>
+                {apps.map(a => (
+                  <option key={a.id} value={a.id}>{a.company} — {a.role}</option>
+                ))}
+              </select>
+              {linkedAppId && (
+                <button onClick={() => setLinkedAppId("")} className="text-muted-foreground hover:text-foreground">
+                  <X className="size-3" />
+                </button>
+              )}
+            </div>
+            <span className="text-[11px] text-muted-foreground shrink-0">{charCount} chars</span>
+            <button
+              onClick={analyze}
+              disabled={loading || !jd.trim()}
+              className="flex items-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-50 transition-opacity shrink-0"
+            >
+              {loading ? <Loader2 className="size-3.5 animate-spin" /> : <Sparkles className="size-3.5" />}
+              {loading ? "Analyzing…" : "Analyze JD"}
+            </button>
+          </div>
+        </div>
+
+        {/* Results */}
         {loading && (
           <div className="flex flex-col items-center justify-center rounded-xl border border-border bg-card py-20 text-center gap-3">
             <Loader2 className="size-6 animate-spin text-primary" />
@@ -200,12 +196,12 @@ export function JdAnalyzer() {
         )}
 
         {result && (
-          <>
+          <div className="flex flex-col gap-4">
             {/* Fit Score */}
             <div className={cn("rounded-2xl border p-5", fitBg(result.fitScore))}>
               <div className="flex items-center justify-between mb-3">
                 <div>
-                  <p className="label-caps text-muted-foreground mb-1">Fit Score</p>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">Fit Score</p>
                   <p className="text-xs text-muted-foreground">{fitLabel(result.fitScore)}</p>
                 </div>
                 <span className={cn("text-5xl font-black leading-none", fitColor(result.fitScore))}>
@@ -224,59 +220,59 @@ export function JdAnalyzer() {
               <p className="mt-2 text-[10px] text-muted-foreground">Powered by Amazon Nova</p>
             </div>
 
-            {/* Required Skills */}
-            {result.requiredSkills?.length > 0 && (
-              <div className="rounded-xl border border-border bg-card p-4">
-                <div className="flex items-center gap-2 mb-3">
-                  <CheckCircle className="size-3.5 text-emerald-400" />
-                  <span className="text-xs font-semibold text-card-foreground">Required Skills</span>
-                  <span className="text-[10px] text-muted-foreground">must-have</span>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Required Skills */}
+              {result.requiredSkills?.length > 0 && (
+                <div className="rounded-xl border border-border bg-card p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <CheckCircle className="size-3.5 text-emerald-400" />
+                    <span className="text-xs font-semibold text-card-foreground">Required Skills</span>
+                    <span className="text-[10px] text-muted-foreground">must-have</span>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {result.requiredSkills.map(s => <Chip key={s} label={s} variant="green" />)}
+                  </div>
                 </div>
-                <div className="flex flex-wrap gap-1.5">
-                  {result.requiredSkills.map(s => <Chip key={s} label={s} variant="green" />)}
-                </div>
-              </div>
-            )}
+              )}
 
-            {/* Nice to Have */}
-            {result.niceToHaveSkills?.length > 0 && (
-              <div className="rounded-xl border border-border bg-card p-4">
-                <div className="flex items-center gap-2 mb-3">
-                  <Info className="size-3.5 text-yellow-400" />
-                  <span className="text-xs font-semibold text-card-foreground">Nice to Have</span>
-                  <span className="text-[10px] text-muted-foreground">bonus points</span>
+              {/* Nice to Have */}
+              {result.niceToHaveSkills?.length > 0 && (
+                <div className="rounded-xl border border-border bg-card p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Info className="size-3.5 text-yellow-400" />
+                    <span className="text-xs font-semibold text-card-foreground">Nice to Have</span>
+                    <span className="text-[10px] text-muted-foreground">bonus points</span>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {result.niceToHaveSkills.map(s => <Chip key={s} label={s} variant="yellow" />)}
+                  </div>
                 </div>
-                <div className="flex flex-wrap gap-1.5">
-                  {result.niceToHaveSkills.map(s => <Chip key={s} label={s} variant="yellow" />)}
-                </div>
-              </div>
-            )}
+              )}
 
-            {/* Red Flags */}
-            {result.redFlags?.length > 0 && (
-              <div className="rounded-xl border border-red-500/20 bg-red-500/5 p-4">
-                <div className="flex items-center gap-2 mb-3">
-                  <AlertTriangle className="size-3.5 text-red-400" />
-                  <span className="text-xs font-semibold text-red-400">Red Flags</span>
+              {/* Tech Stack */}
+              {result.techStack?.length > 0 && (
+                <div className="rounded-xl border border-border bg-card p-4">
+                  <p className="text-xs font-semibold text-card-foreground mb-3">Tech Stack Mentioned</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {result.techStack.map(s => <Chip key={s} label={s} variant="blue" />)}
+                  </div>
                 </div>
-                <div className="flex flex-wrap gap-1.5">
-                  {result.redFlags.map(s => <Chip key={s} label={s} variant="red" />)}
-                </div>
-              </div>
-            )}
+              )}
 
-            {/* Tech Stack */}
-            {result.techStack?.length > 0 && (
-              <div className="rounded-xl border border-border bg-card p-4">
-                <p className="text-xs font-semibold text-card-foreground mb-3">Tech Stack Mentioned</p>
-                <div className="flex flex-wrap gap-1.5">
-                  {result.techStack.map(s => <Chip key={s} label={s} variant="blue" />)}
+              {/* Red Flags */}
+              {result.redFlags?.length > 0 && (
+                <div className="rounded-xl border border-red-500/20 bg-red-500/5 p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <AlertTriangle className="size-3.5 text-red-400" />
+                    <span className="text-xs font-semibold text-red-400">Red Flags</span>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {result.redFlags.map(s => <Chip key={s} label={s} variant="red" />)}
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
 
-            {/* Seniority + Salary */}
-            <div className="grid grid-cols-2 gap-3">
+              {/* Seniority signals */}
               {result.senioritySignals?.length > 0 && (
                 <div className="rounded-xl border border-border bg-card p-4">
                   <p className="text-xs font-semibold text-card-foreground mb-2">Seniority Signals</p>
@@ -287,6 +283,8 @@ export function JdAnalyzer() {
                   </div>
                 </div>
               )}
+
+              {/* Salary signals */}
               {result.salarySignals && (
                 <div className="rounded-xl border border-border bg-card p-4">
                   <p className="text-xs font-semibold text-card-foreground mb-2">Salary Signals</p>
@@ -307,9 +305,9 @@ export function JdAnalyzer() {
                 <CheckCircle className="size-4" /> Analysis saved — fit score will appear on the kanban card
               </div>
             )}
-          </>
+          </div>
         )}
       </div>
-    </TwoZone>
+    </div>
   )
 }

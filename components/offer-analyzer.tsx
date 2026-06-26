@@ -11,7 +11,6 @@ import {
 import { ClauseCard } from "@/components/clause-card"
 import { OfferTextView } from "@/components/offer-text-view"
 import { OfferUpload } from "@/components/offer-upload"
-import { TwoZone } from "@/components/two-zone"
 import { cn } from "@/lib/utils"
 
 type Suggestion = {
@@ -55,7 +54,6 @@ function SuggestionBanner({ suggestion, onDismiss, onFollowUp }: { suggestion: S
         })
         const newApp = await res.json()
         setDone(true)
-        // Offer follow-up after tracker add
         if (newApp.id && suggestion.meta && onFollowUp) {
           setTimeout(() => {
             onFollowUp({
@@ -63,11 +61,11 @@ function SuggestionBanner({ suggestion, onDismiss, onFollowUp }: { suggestion: S
               message: `Want to add this offer to War Room to compare it with others?`,
               data: {
                 applicationId: newApp.id,
-                baseSalary: suggestion.meta.baseSalary,
-                equityValue: suggestion.meta.equityValue,
-                signingBonus: suggestion.meta.signingBonus,
-                vestingSchedule: suggestion.meta.vestingSchedule,
-                startDate: suggestion.meta.startDate,
+                baseSalary: suggestion.meta!.baseSalary,
+                equityValue: suggestion.meta!.equityValue,
+                signingBonus: suggestion.meta!.signingBonus,
+                vestingSchedule: suggestion.meta!.vestingSchedule,
+                startDate: suggestion.meta!.startDate,
               },
             })
           }, 1600)
@@ -190,132 +188,140 @@ export function OfferAnalyzer() {
   }
 
   return (
-    <TwoZone
-      left={
-        <section className="flex min-h-0 flex-1 flex-col gap-4 p-4">
-          <p className="label-caps text-muted-foreground">Offer Letter</p>
-          {!loaded ? (
-            <>
-              <OfferUpload onLoadSample={() => analyze(OFFER_TEXT)} onFileText={(text) => analyze(text)} />
-              <div className="flex min-h-0 flex-1 flex-col rounded-lg border border-border bg-card/40 p-1">
-                <textarea
-                  value={pasted}
-                  onChange={(e) => setPasted(e.target.value)}
-                  placeholder="…or paste your offer letter text here"
-                  className="min-h-48 flex-1 resize-none rounded-md bg-transparent p-4 text-[13px] leading-relaxed text-card-foreground outline-none placeholder:text-muted-foreground"
-                />
-                {error && <p className="px-4 pb-2 text-xs text-red-400">{error}</p>}
-                {pasted.trim().length > 0 && (
-                  <button
-                    type="button"
-                    onClick={() => analyze(pasted)}
-                    disabled={analyzing}
-                    className="m-2 flex items-center justify-center gap-2 rounded-md bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-60"
-                  >
-                    {analyzing && <Loader2 className="size-3 animate-spin" />}
-                    {analyzing ? "Analyzing…" : "Analyze with Claude"}
-                  </button>
-                )}
-              </div>
-            </>
-          ) : (
-            <>
-              <div className="flex items-center justify-between gap-3 rounded-lg border border-border bg-card px-4 py-3">
-                <div className="flex items-center gap-2.5">
-                  <div className="flex size-8 items-center justify-center rounded-md bg-secondary text-secondary-foreground">
-                    <FileText className="size-4" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold text-card-foreground">
-                      {meta?.company ? `${meta.company}${meta.role ? ` · ${meta.role}` : ""}` : "Offer Analysis"}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {clauses.length} clauses identified
-                      {meta?.baseSalary ? ` · $${(meta.baseSalary / 1000).toFixed(0)}k base` : ""}
-                    </p>
-                  </div>
-                </div>
+    <div className="px-8 py-7">
+
+      {/* Page header */}
+      <div className="mb-6 flex items-end justify-between">
+        <div>
+          <h1 className="text-xl font-bold tracking-tight text-foreground">Offer Analyzer</h1>
+          <p className="mt-0.5 text-sm text-muted-foreground">Upload or paste your offer letter for a clause-by-clause breakdown.</p>
+        </div>
+        {loaded && (
+          <button type="button" onClick={reset}
+            className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground">
+            <RotateCcw className="size-3.5" /> New Analysis
+          </button>
+        )}
+      </div>
+
+      <div className="mx-auto max-w-4xl flex flex-col gap-6">
+
+        {!loaded ? (
+          <>
+            <OfferUpload onLoadSample={() => analyze(OFFER_TEXT)} onFileText={(text) => analyze(text)} />
+            <div className="rounded-2xl border border-border bg-card p-5 flex flex-col gap-3">
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Or paste offer letter text</p>
+              <textarea
+                value={pasted}
+                onChange={(e) => setPasted(e.target.value)}
+                placeholder="Paste your offer letter text here…"
+                rows={10}
+                className="w-full resize-none rounded-xl border border-border bg-background/60 p-4 text-[13px] leading-relaxed text-card-foreground outline-none transition-colors placeholder:text-muted-foreground/40 focus:border-primary/60 focus:ring-1 focus:ring-primary/40"
+              />
+              {error && <p className="text-xs text-red-400">{error}</p>}
+              {pasted.trim().length > 0 && (
                 <button
                   type="button"
-                  onClick={reset}
-                  className="inline-flex items-center gap-1.5 rounded-md bg-secondary px-2.5 py-1.5 text-xs font-medium text-secondary-foreground transition-colors hover:bg-accent"
+                  onClick={() => analyze(pasted)}
+                  disabled={analyzing}
+                  className="self-end flex items-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-60"
                 >
-                  <RotateCcw className="size-3.5" />
-                  New
+                  {analyzing && <Loader2 className="size-3.5 animate-spin" />}
+                  {analyzing ? "Analyzing…" : "Analyze with AI"}
                 </button>
-              </div>
-
-              <div className="min-h-0 flex-1">
-                <OfferTextView
-                  text={offerText}
-                  clauses={clauses}
-                  activeClauseId={activeId}
-                  onHighlightClick={(id) => {
-                    setActiveId(id)
-                    setExpandedId(id)
-                  }}
-                />
-              </div>
-            </>
-          )}
-        </section>
-      }
-      className="flex-1 min-h-0"
-    >
-      <section className="flex min-h-0 flex-col gap-4 p-4">
-        {/* Smart suggestions */}
-        {suggestions.length > 0 && (
-          <div className="flex flex-col gap-2">
-            {suggestions.map((s, i) => (
-              <SuggestionBanner
-                key={i}
-                suggestion={s}
-                onDismiss={() => setSuggestions(prev => prev.filter((_, j) => j !== i))}
-                onFollowUp={(followUp) => setSuggestions(prev => [...prev.filter((_, j) => j !== i), followUp])}
-              />
-            ))}
-          </div>
-        )}
-
-        <div className="grid grid-cols-4 gap-2 rounded-lg border border-border bg-card p-3">
-          <SummaryStat label="Clauses" value={clauses.length} dot="bg-muted-foreground" />
-          <SummaryStat label="Standard" value={counts.green} dot={RISK_CONFIG.green.dot} />
-          <SummaryStat label="Negotiate" value={counts.yellow} dot={RISK_CONFIG.yellow.dot} />
-          <SummaryStat label="Flag" value={counts.red} dot={RISK_CONFIG.red.dot} />
-        </div>
-
-        <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto pr-1">
-          {!loaded ? (
-            <div className="flex flex-1 items-center justify-center rounded-lg border border-dashed border-border bg-card/30 p-8 text-center text-sm text-muted-foreground">
-              {analyzing ? (
-                <span className="flex items-center gap-2"><Loader2 className="size-4 animate-spin" /> AI is analyzing your offer…</span>
-              ) : (
-                "Upload or paste an offer letter to see a clause-by-clause breakdown."
+              )}
+              {analyzing && (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Loader2 className="size-4 animate-spin text-primary" /> AI is analyzing your offer…
+                </div>
               )}
             </div>
-          ) : (
-            clauses.map((clause) => (
-              <ClauseCard
-                key={clause.id}
-                clause={clause}
-                expanded={expandedId === clause.id}
-                active={activeId === clause.id}
-                onToggle={() => handleToggle(clause.id)}
-                onHover={setActiveId}
-              />
-            ))
-          )}
-        </div>
-      </section>
-    </TwoZone>
+          </>
+        ) : (
+          <>
+            {/* Loaded state — meta header */}
+            <div className="flex items-center gap-4 rounded-2xl border border-border bg-card px-5 py-4">
+              <div className="flex size-10 items-center justify-center rounded-xl bg-secondary text-secondary-foreground">
+                <FileText className="size-5" />
+              </div>
+              <div>
+                <p className="font-bold text-card-foreground">
+                  {meta?.company ? `${meta.company}${meta.role ? ` · ${meta.role}` : ""}` : "Offer Analysis"}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {clauses.length} clauses identified
+                  {meta?.baseSalary ? ` · $${(meta.baseSalary / 1000).toFixed(0)}k base` : ""}
+                </p>
+              </div>
+
+              {/* Summary stats */}
+              <div className="ml-auto flex items-center gap-3">
+                <div className="grid grid-cols-4 gap-2">
+                  <SummaryStat label="Clauses" value={clauses.length} dot="bg-muted-foreground" />
+                  <SummaryStat label="Standard" value={counts.green} dot={RISK_CONFIG.green.dot} />
+                  <SummaryStat label="Negotiate" value={counts.yellow} dot={RISK_CONFIG.yellow.dot} />
+                  <SummaryStat label="Flag" value={counts.red} dot={RISK_CONFIG.red.dot} />
+                </div>
+              </div>
+            </div>
+
+            {/* Smart suggestions */}
+            {suggestions.length > 0 && (
+              <div className="flex flex-col gap-2">
+                {suggestions.map((s, i) => (
+                  <SuggestionBanner
+                    key={i}
+                    suggestion={s}
+                    onDismiss={() => setSuggestions(prev => prev.filter((_, j) => j !== i))}
+                    onFollowUp={(followUp) => setSuggestions(prev => [...prev.filter((_, j) => j !== i), followUp])}
+                  />
+                ))}
+              </div>
+            )}
+
+            {/* Two-column: offer text + clause list */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+              <div className="rounded-2xl border border-border bg-card overflow-hidden">
+                <p className="px-5 py-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground border-b border-border">Offer Text</p>
+                <div className="p-4 max-h-[600px] overflow-y-auto">
+                  <OfferTextView
+                    text={offerText}
+                    clauses={clauses}
+                    activeClauseId={activeId}
+                    onHighlightClick={(id) => {
+                      setActiveId(id)
+                      setExpandedId(id)
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-3">
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Clause Breakdown</p>
+                {clauses.map((clause) => (
+                  <ClauseCard
+                    key={clause.id}
+                    clause={clause}
+                    expanded={expandedId === clause.id}
+                    active={activeId === clause.id}
+                    onToggle={() => handleToggle(clause.id)}
+                    onHover={setActiveId}
+                  />
+                ))}
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
   )
 }
 
 function SummaryStat({ label, value, dot }: { label: string; value: number; dot: string }) {
   return (
-    <div className="flex flex-col items-center justify-center gap-1 rounded-md bg-secondary/50 py-2">
-      <span className="text-xl font-bold text-card-foreground">{value}</span>
-      <span className="flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground">
+    <div className="flex flex-col items-center justify-center gap-1 rounded-lg bg-secondary/50 px-3 py-2">
+      <span className="text-lg font-bold text-card-foreground leading-none">{value}</span>
+      <span className="flex items-center gap-1 text-[10px] font-medium text-muted-foreground">
         <span className={`size-1.5 rounded-full ${dot}`} />
         {label}
       </span>

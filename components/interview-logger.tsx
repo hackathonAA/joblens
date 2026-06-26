@@ -7,7 +7,6 @@ import {
 } from "lucide-react"
 import { OUTCOME_CONFIG } from "@/lib/interview-data"
 import { cn } from "@/lib/utils"
-import { TwoZone } from "@/components/two-zone"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -180,154 +179,148 @@ export function InterviewLogger() {
     </div>
   )
 
-  const leftPanel = (
-    <>
-      {/* App selector */}
-      <div className="px-4 py-3 border-b border-border">
-        <p className="label-caps text-muted-foreground mb-2">Application</p>
-        <div className="flex flex-col gap-1">
-          {apps.map(app => (
-            <button key={app.id}
-              onClick={() => { setSelectedAppId(app.id); setSelectedRoundId(app.rounds[0]?.id ?? null); setShowAddRound(false) }}
-              className={cn("flex items-center justify-between rounded-lg px-3 py-2 text-sm font-medium transition-colors text-left",
-                selectedAppId === app.id ? "bg-secondary text-secondary-foreground border-l-2 border-l-primary" : "text-muted-foreground hover:bg-secondary/50 hover:text-foreground"
-              )}>
-              <span className="truncate">{app.company}</span>
-              {app.rounds.length > 0 && (
-                <span className="ml-1.5 shrink-0 rounded-full bg-primary/20 px-1.5 py-0.5 text-[10px] text-primary">{app.rounds.length}</span>
-              )}
-            </button>
-          ))}
-        </div>
+  return (
+    <div className="px-8 py-7">
+
+      {/* Page header */}
+      <div className="mb-6">
+        <h1 className="text-xl font-bold tracking-tight text-foreground">Interviews</h1>
+        <p className="mt-0.5 text-sm text-muted-foreground">Log rounds, practice questions, and track your confidence.</p>
       </div>
 
-      {/* Selected app rounds */}
+      {/* App selector tabs */}
+      <div className="flex items-center gap-1 mb-6 overflow-x-auto pb-1">
+        {apps.map(app => (
+          <button key={app.id}
+            onClick={() => { setSelectedAppId(app.id); setSelectedRoundId(app.rounds[0]?.id ?? null); setShowAddRound(false) }}
+            className={cn(
+              "flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors whitespace-nowrap",
+              selectedAppId === app.id
+                ? "bg-secondary text-secondary-foreground"
+                : "text-muted-foreground hover:bg-secondary/50 hover:text-foreground"
+            )}>
+            <span>{app.company}</span>
+            {app.rounds.length > 0 && (
+              <span className="rounded-full bg-primary/20 px-1.5 py-0.5 text-[10px] text-primary font-semibold">{app.rounds.length}</span>
+            )}
+          </button>
+        ))}
+      </div>
+
       {selectedApp && (
-        <>
-          <div className="flex items-center justify-between px-4 py-2.5 border-b border-border">
-            <span className="label-caps text-muted-foreground">Rounds</span>
+        <div className="flex flex-col gap-6">
+          {/* Selected app header + add round */}
+          <div className="flex items-end justify-between">
+            <div>
+              <h2 className="text-lg font-bold text-foreground">{selectedApp.company} — {selectedApp.role}</h2>
+              <p className="mt-0.5 text-sm text-muted-foreground">{rounds.length} round{rounds.length !== 1 ? "s" : ""} logged</p>
+            </div>
             <button onClick={() => setShowAddRound(v => !v)}
-              className="flex items-center gap-1 rounded-lg bg-primary/15 px-2 py-1 text-[10px] font-medium text-primary hover:bg-primary/25 transition-colors">
-              <Plus className="size-3" /> Add
+              className="flex items-center gap-1.5 rounded-lg bg-primary/15 px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary/25 transition-colors">
+              <Plus className="size-3.5" /> Add Round
             </button>
           </div>
 
           {/* Add round form */}
           {showAddRound && (
-            <form onSubmit={handleAddRound} className="border-b border-border p-4 flex flex-col gap-3">
-              <div className="grid grid-cols-1 gap-2">
+            <form onSubmit={handleAddRound} className="rounded-xl border border-border bg-card p-5 flex flex-col gap-4">
+              <h3 className="text-sm font-semibold text-foreground">New Round</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
-                  <label className="mb-1 block text-[10px] font-medium text-muted-foreground">Round Type *</label>
+                  <label className="mb-1 block text-xs font-medium text-muted-foreground">Round Type *</label>
                   <select value={ROUND_TYPES.includes(roundForm.roundType) ? roundForm.roundType : "Other"}
                     onChange={e => setRoundForm(f => ({ ...f, roundType: e.target.value }))}
-                    className="w-full rounded-lg border border-border bg-background px-2 py-1.5 text-sm text-foreground outline-none focus:ring-1 focus:ring-primary">
+                    className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:ring-1 focus:ring-primary">
                     {ROUND_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label className="mb-1 block text-[10px] font-medium text-muted-foreground">Date</label>
+                  <label className="mb-1 block text-xs font-medium text-muted-foreground">Date</label>
                   <input type="date" value={roundForm.scheduledAt} onChange={e => setRoundForm(f => ({ ...f, scheduledAt: e.target.value }))}
-                    className="w-full rounded-lg border border-border bg-background px-2 py-1.5 text-sm text-foreground outline-none focus:ring-1 focus:ring-primary" />
+                    className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:ring-1 focus:ring-primary" />
                 </div>
                 <div>
-                  <label className="mb-1 block text-[10px] font-medium text-muted-foreground">Interviewer</label>
+                  <label className="mb-1 block text-xs font-medium text-muted-foreground">Interviewer Name</label>
                   <input value={roundForm.interviewerName} onChange={e => setRoundForm(f => ({ ...f, interviewerName: e.target.value }))}
                     placeholder="Name"
-                    className="w-full rounded-lg border border-border bg-background px-2 py-1.5 text-sm text-foreground outline-none focus:ring-1 focus:ring-primary" />
+                    className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:ring-1 focus:ring-primary" />
                 </div>
               </div>
               <div className="flex gap-2">
                 <button type="submit" disabled={saving}
-                  className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-50">
-                  {saving && <Loader2 className="size-3 animate-spin" />} Save
+                  className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-50">
+                  {saving && <Loader2 className="size-3.5 animate-spin" />} Save Round
                 </button>
                 <button type="button" onClick={() => setShowAddRound(false)}
-                  className="rounded-lg border border-border px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground">
+                  className="rounded-lg border border-border px-4 py-2 text-sm text-muted-foreground hover:text-foreground">
                   Cancel
                 </button>
               </div>
             </form>
           )}
 
-          {/* Round timeline */}
-          <div className="flex flex-col divide-y divide-border">
-            {rounds.length === 0 ? (
-              <p className="px-4 py-4 text-xs text-muted-foreground">No rounds yet.</p>
-            ) : rounds.map(round => {
-              const outcomeKey = (round.outcome ?? "pending") as keyof typeof OUTCOME_CONFIG
-              const cfg = OUTCOME_CONFIG[outcomeKey] ?? OUTCOME_CONFIG["pending"]
-              return (
-                <button key={round.id} onClick={() => setSelectedRoundId(round.id)}
-                  className={cn("flex flex-col gap-0.5 px-4 py-3 text-left transition-colors hover:bg-secondary/50",
-                    selectedRoundId === round.id && "bg-secondary/80 border-l-2 border-l-primary",
-                  )}>
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-sm font-medium text-card-foreground truncate">{round.roundType}</span>
-                    <span className={cn("rounded-full px-2 py-0.5 text-[10px] font-semibold shrink-0", cfg.badge)}>{cfg.label}</span>
-                  </div>
-                  {round.interviewerName && <p className="text-xs text-muted-foreground truncate">{round.interviewerName}</p>}
-                  {round.scheduledAt && <p className="text-xs text-muted-foreground font-num">{new Date(round.scheduledAt).toLocaleDateString()}</p>}
-                  {round.confidenceScore != null && (
-                    <p className={cn("text-xs font-semibold", scoreColor(round.confidenceScore))}>
-                      {round.confidenceScore}% confidence
-                    </p>
-                  )}
-                  {round.questions.length > 0 && (
-                    <p className="text-[10px] text-muted-foreground">{round.questions.length} question{round.questions.length !== 1 ? "s" : ""}</p>
-                  )}
-                </button>
-              )
-            })}
-          </div>
-        </>
+          {/* Round tabs */}
+          {rounds.length > 0 && (
+            <div className="flex items-center gap-1 overflow-x-auto pb-1">
+              {rounds.map(round => {
+                const outcomeKey = (round.outcome ?? "pending") as keyof typeof OUTCOME_CONFIG
+                const cfg = OUTCOME_CONFIG[outcomeKey] ?? OUTCOME_CONFIG["pending"]
+                return (
+                  <button key={round.id} onClick={() => setSelectedRoundId(round.id)}
+                    className={cn(
+                      "flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors whitespace-nowrap",
+                      selectedRoundId === round.id
+                        ? "bg-secondary text-secondary-foreground"
+                        : "text-muted-foreground hover:bg-secondary/50 hover:text-foreground"
+                    )}>
+                    <span>{round.roundType}</span>
+                    <span className={cn("rounded-full px-2 py-0.5 text-[10px] font-semibold", cfg.badge)}>{cfg.label}</span>
+                    {round.confidenceScore != null && (
+                      <span className={cn("text-[10px] font-semibold", scoreColor(round.confidenceScore))}>
+                        {round.confidenceScore}%
+                      </span>
+                    )}
+                  </button>
+                )
+              })}
+            </div>
+          )}
+
+          {/* Round detail */}
+          {selectedRound ? (
+            <RoundDetail
+              round={selectedRound}
+              onUpdateRound={updateRound}
+              onDeleteRound={deleteRound}
+              onPatchRoundLocal={patchRoundLocal}
+              onPatchQuestionLocal={patchQuestionLocal}
+              activeTab={activeTab}
+              setActiveTab={setActiveTab}
+            />
+          ) : rounds.length === 0 ? (
+            <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border py-16 text-center">
+              <p className="text-sm font-medium text-foreground">No rounds logged yet</p>
+              <p className="mt-1 text-sm text-muted-foreground">Click "Add Round" to start tracking your interview progress.</p>
+            </div>
+          ) : null}
+        </div>
       )}
-    </>
-  )
 
-  return (
-    <TwoZone left={leftPanel} className="flex-1 min-h-0">
-      <div className="flex flex-col overflow-y-auto p-6 gap-8">
-        {/* Selected app header */}
-        {selectedApp && (
-          <div>
-            <h2 className="text-xl font-bold text-foreground">{selectedApp.company} — {selectedApp.role}</h2>
-            <p className="mt-0.5 text-sm text-muted-foreground">{rounds.length} round{rounds.length !== 1 ? "s" : ""} logged</p>
+      {/* Question bank */}
+      {apps.length > 0 && (
+        <section className="mt-10">
+          <div className="mb-4">
+            <h2 className="text-base font-bold text-foreground">Question Bank</h2>
+            <p className="mt-0.5 text-sm text-muted-foreground">All questions logged across your interviews.</p>
           </div>
-        )}
-
-        {/* Round detail */}
-        {selectedRound ? (
-          <RoundDetail
-            round={selectedRound}
-            onUpdateRound={updateRound}
-            onDeleteRound={deleteRound}
-            onPatchRoundLocal={patchRoundLocal}
-            onPatchQuestionLocal={patchQuestionLocal}
-            activeTab={activeTab}
-            setActiveTab={setActiveTab}
-          />
-        ) : selectedApp ? (
-          <div className="flex items-center justify-center py-12">
-            <p className="text-sm text-muted-foreground">Select a round from the left to view details.</p>
-          </div>
-        ) : (
-          <div className="flex items-center justify-center py-12">
-            <p className="text-sm text-muted-foreground">Select an application to get started.</p>
-          </div>
-        )}
-
-        {/* Question bank */}
-        <section>
-          <h3 className="mb-1 text-sm font-bold text-foreground">Question bank</h3>
-          <p className="mb-3 text-sm text-muted-foreground">All questions logged across your interviews.</p>
           <QuestionBank
             rounds={apps.flatMap(a => a.rounds.map(r => ({ ...r, company: a.company })))}
             onPatchQuestion={patchQuestionLocal}
             onDeleteQuestion={deleteQuestionLocal}
           />
         </section>
-      </div>
-    </TwoZone>
+      )}
+    </div>
   )
 }
 
