@@ -6,7 +6,7 @@ import {
   PointerSensor,
   type DragEndEvent,
   type DragStartEvent,
-  closestCorners,
+  pointerWithin,
   useSensor,
   useSensors,
   useDroppable,
@@ -148,10 +148,8 @@ export function KanbanBoard() {
     const activeCardData = cards.find(c => c.id === activeId)
     if (!activeCardData) return
 
-    const overColumn = columns.find(col => col.columnKey === overId)
-    const overCard = cards.find(c => c.id === overId)
-    const destColumnKey: string | undefined = overColumn?.columnKey ?? overCard?.columnId
-
+    // Only column drop zones are valid targets (useDroppable ids = columnKey)
+    const destColumnKey = columns.find(col => col.columnKey === overId)?.columnKey
     if (!destColumnKey || destColumnKey === activeCardData.columnId) return
 
     if (rejectedKeys.has(destColumnKey)) {
@@ -164,21 +162,10 @@ export function KanbanBoard() {
         .catch(() => {})
     }
 
-    setCards(prev => {
-      const moving = prev.find(c => c.id === activeId)
-      if (!moving) return prev
-      const without = prev.filter(c => c.id !== activeId)
-      const updated: JobCardType = {
-        ...moving,
-        columnId: destColumnKey,
-        status: rejectedKeys.has(destColumnKey) ? "rejected" : "active",
-      }
-      if (overCard && overCard.columnId === destColumnKey) {
-        const index = without.findIndex(c => c.id === overId)
-        return [...without.slice(0, index), updated, ...without.slice(index)]
-      }
-      return [...without, updated]
-    })
+    setCards(prev => prev.map(c => c.id === activeId
+      ? { ...c, columnId: destColumnKey, status: rejectedKeys.has(destColumnKey) ? "rejected" : "active" }
+      : c
+    ))
 
     await fetch(`/api/applications/${activeId}`, {
       method: "PATCH",
@@ -258,7 +245,7 @@ export function KanbanBoard() {
       <DndContext
         id="joblens-kanban"
         sensors={sensors}
-        collisionDetection={closestCorners}
+        collisionDetection={pointerWithin}
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
       >

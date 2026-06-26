@@ -1,9 +1,9 @@
 "use client"
 
 import { useState } from "react"
-import { useSortable } from "@dnd-kit/sortable"
+import { useDraggable } from "@dnd-kit/core"
 import { CSS } from "@dnd-kit/utilities"
-import { Clock, MapPin, ExternalLink, ChevronDown, ChevronUp, Pencil, Check, X } from "lucide-react"
+import { Clock, MapPin, ExternalLink, ChevronDown, Pencil, Check, X } from "lucide-react"
 import {
   type JobCard as JobCardType,
   daysSince,
@@ -53,12 +53,13 @@ export function JobCard({
     salaryMax: String(card.salaryMax ?? ""),
   })
 
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: card.id,
     data: { card },
+    disabled: overlay,
   })
 
-  const style = { transform: CSS.Translate.toString(transform), transition }
+  const style = transform ? { transform: CSS.Translate.toString(transform) } : undefined
 
   function saveEdit() {
     onEdit?.({
@@ -99,7 +100,7 @@ export function JobCard({
         overlay && "cursor-grabbing rotate-1 shadow-2xl shadow-black/50 ring-1 ring-primary/30",
       )}
     >
-      {/* Drag handle + main info */}
+      {/* Drag handle — top section */}
       <div
         {...attributes}
         {...listeners}
