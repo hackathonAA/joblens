@@ -9,14 +9,17 @@ import {
   closestCorners,
   useSensor,
   useSensors,
+  useDroppable,
 } from "@dnd-kit/core"
 import { useState, useEffect } from "react"
-import { Settings } from "lucide-react"
+import { Settings, Plus } from "lucide-react"
 import { JobCard } from "@/components/job-card"
-import { KanbanColumn } from "@/components/kanban-column"
+import { CardDetailPanel } from "@/components/card-detail-panel"
 import { AddCardModal } from "@/components/add-card-modal"
 import { ColumnEditorModal } from "@/components/column-editor-modal"
+import { TwoZone } from "@/components/two-zone"
 import { useColumns } from "@/lib/columns-context"
+import { cn } from "@/lib/utils"
 import type { JobCard as JobCardType } from "@/lib/kanban-data"
 
 function dbRowToCard(row: any, rejectedKeys: Set<string>): JobCardType {
@@ -36,10 +39,58 @@ function dbRowToCard(row: any, rejectedKeys: Set<string>): JobCardType {
   }
 }
 
+function ColumnSection({
+  column,
+  cards,
+  selectedId,
+  onSelect,
+  onAdd,
+}: {
+  column: { columnKey: string; title: string }
+  cards: JobCardType[]
+  selectedId: string | null
+  onSelect: (id: string) => void
+  onAdd: () => void
+}) {
+  const { setNodeRef, isOver } = useDroppable({ id: column.columnKey })
+
+  return (
+    <section className="px-3 py-2">
+      <div className="flex items-center justify-between mb-1.5 px-1">
+        <span className="label-caps text-muted-foreground">{column.title}</span>
+        <span className="font-num text-[10px] text-muted-foreground">{cards.length}</span>
+      </div>
+      <div
+        ref={setNodeRef}
+        className={cn(
+          "flex flex-col gap-1.5 min-h-[32px] rounded-lg transition-colors",
+          isOver && "bg-primary/5 ring-1 ring-inset ring-primary/20",
+        )}
+      >
+        {cards.map(card => (
+          <JobCard
+            key={card.id}
+            card={card}
+            selected={selectedId === card.id}
+            onSelect={() => onSelect(card.id)}
+          />
+        ))}
+        <button
+          onClick={onAdd}
+          className="flex items-center gap-1.5 rounded-lg border border-dashed border-border px-2.5 py-1.5 text-[11px] text-muted-foreground hover:border-primary/50 hover:text-primary transition-colors"
+        >
+          <Plus className="size-3" /> Add
+        </button>
+      </div>
+    </section>
+  )
+}
+
 export function KanbanBoard() {
-  const { columns, rejectedColumns, defaultColumn, loading: colsLoading } = useColumns()
+  const { columns, rejectedColumns, loading: colsLoading } = useColumns()
   const [cards, setCards] = useState<JobCardType[]>([])
   const [activeCard, setActiveCard] = useState<JobCardType | null>(null)
+  const [selectedId, setSelectedId] = useState<string | null>(null)
   const [appsLoading, setAppsLoading] = useState(true)
   const [addingToColumn, setAddingToColumn] = useState<{ key: string; title: string } | null>(null)
   const [showEditor, setShowEditor] = useState(false)
@@ -50,11 +101,18 @@ export function KanbanBoard() {
     if (colsLoading) return
     fetch("/api/applications")
       .then(r => r.json())
-      .then(rows => { if (Array.isArray(rows)) setCards(rows.map(r => dbRowToCard(r, rejectedKeys))) })
+      .then(rows => {
+        if (Array.isArray(rows)) {
+          const mapped = rows.map(r => dbRowToCard(r, rejectedKeys))
+          setCards(mapped)
+          if (mapped.length > 0) setSelectedId(mapped[0].id)
+        }
+      })
       .finally(() => setAppsLoading(false))
   }, [colsLoading])
 
   const loading = colsLoading || appsLoading
+  const selectedCard = cards.find(c => c.id === selectedId) ?? null
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }))
 
@@ -78,7 +136,6 @@ export function KanbanBoard() {
 
     if (!destColumnKey || destColumnKey === activeCardData.columnId) return
 
-    // If moving to rejected column, remove from war room if offer exists
     if (rejectedKeys.has(destColumnKey)) {
       fetch(`/api/offers?applicationId=${activeId}`)
         .then(r => r.ok ? r.json() : [])
@@ -129,9 +186,41 @@ export function KanbanBoard() {
       body: JSON.stringify({ ...data, status: addingToColumn.key }),
     })
     const row = await res.json()
-    if (row.id) setCards(prev => [...prev, dbRowToCard(row, rejectedKeys)])
+    if (row.id) {
+      const newCard = dbRowToCard(row, rejectedKeys)
+      setCards(prev => [...prev, newCard])
+      setSelectedId(newCard.id)
+    }
     setAddingToColumn(null)
   }
+
+  const leftPanel = (
+    <>
+      <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+        <span className="label-caps text-muted-foreground">Pipeline</span>
+        <button
+          onClick={() => setShowEditor(true)}
+          className="flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
+        >
+          <Settings className="size-3" /> Columns
+        </button>
+      </div>
+      {loading ? (
+        <p className="px-4 py-6 text-sm text-muted-foreground">Loading…</p>
+      ) : (
+        columns.map(column => (
+          <ColumnSection
+            key={column.columnKey}
+            column={column}
+            cards={cards.filter(c => c.columnId === column.columnKey)}
+            selectedId={selectedId}
+            onSelect={setSelectedId}
+            onAdd={() => setAddingToColumn({ key: column.columnKey, title: column.title })}
+          />
+        ))
+      )}
+    </>
+  )
 
   return (
     <>
@@ -145,15 +234,6 @@ export function KanbanBoard() {
       )}
       {showEditor && <ColumnEditorModal onClose={() => setShowEditor(false)} />}
 
-      <div className="mb-4 flex items-center justify-end">
-        <button
-          onClick={() => setShowEditor(true)}
-          className="flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
-        >
-          <Settings className="size-3.5" /> Customize columns
-        </button>
-      </div>
-
       <DndContext
         id="joblens-kanban"
         sensors={sensors}
@@ -161,21 +241,12 @@ export function KanbanBoard() {
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
       >
-        <div className="flex gap-4 overflow-x-auto pb-4">
-          {loading ? (
-            <p className="text-muted-foreground text-sm py-8">Loading…</p>
-          ) : (
-            columns.map(column => (
-              <KanbanColumn
-                key={column.columnKey}
-                column={column}
-                cards={cards.filter(c => c.columnId === column.columnKey)}
-                onAdd={() => setAddingToColumn({ key: column.columnKey, title: column.title })}
-                onEdit={handleEditCard}
-              />
-            ))
-          )}
-        </div>
+        <TwoZone left={leftPanel} className="flex-1 min-h-0">
+          <CardDetailPanel
+            card={selectedCard}
+            onEdit={(data) => selectedId && handleEditCard(selectedId, data)}
+          />
+        </TwoZone>
         <DragOverlay>
           {activeCard ? <JobCard card={activeCard} overlay /> : null}
         </DragOverlay>

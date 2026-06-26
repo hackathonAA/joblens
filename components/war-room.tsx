@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react"
 import { Plus, Trophy, X, Sparkles, Loader2, Pencil, Check, TrendingUp, AlertTriangle, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { TwoZone } from "@/components/two-zone"
 import {
   type Offer,
   REC_CONFIG,
@@ -240,187 +241,37 @@ export function WarRoom() {
 
   if (loading) return <p className="text-sm text-muted-foreground py-8">Loading offers…</p>
 
-  // Filter out applications that are rejected or already in war room
-  const rejectedAppIds = new Set(applications.filter(a => {
-    // We don't have the column info here, but status check via offers is enough
-    return false // We handle this at the API level
-  }).map(a => a.id))
+  // Filter out applications already in war room
   const existingOfferAppIds = new Set(offers.map(o => o._raw.applicationId))
   const availableApps = applications.filter(a => !existingOfferAppIds.has(a.id))
 
   const ROWS = getRows(liveOffers, editingId, editDraft, (key, val) => setEditDraft(d => ({ ...d, [key]: val })), sym)
   const gridCols = { gridTemplateColumns: `minmax(160px, 1fr) repeat(${Math.max(liveOffers.length, 1)}, minmax(180px, 1.4fr))` }
 
-  return (
-    <div className="flex flex-col gap-6">
+  const leftPanel = (
+    <>
+      {/* Header */}
+      <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+        <span className="label-caps text-muted-foreground">Offers</span>
+        {liveOffers.length < 3 && (
+          <button
+            onClick={() => { setShowForm(v => !v); setDuplicateError("") }}
+            className="flex items-center gap-1 rounded-lg bg-primary/15 px-2.5 py-1.5 text-xs font-medium text-primary hover:bg-primary/25 transition-colors"
+          >
+            <Plus className="size-3" /> Add Offer
+          </button>
+        )}
+      </div>
 
-      {/* Summary bar */}
-      {liveOffers.length > 0 && (
-        <div className={cn("grid gap-3", liveOffers.length === 1 ? "grid-cols-1 max-w-sm" : "grid-cols-3")}>
-          {liveOffers.map(o => {
-            const tc = totalComp(o)
-            const isWinner = winner?.id === o.id
-            return (
-              <div key={o.id} className={cn("rounded-xl border border-border bg-card p-4 flex flex-col gap-2", isWinner && "border-emerald-500/40 bg-emerald-500/5")}>
-                <div className="flex items-center justify-between">
-                  <span className={cn("flex size-8 items-center justify-center rounded-full text-xs font-bold", o.logo)}>{o.initials}</span>
-                  {isWinner && <span className="text-[10px] font-semibold text-emerald-400 flex items-center gap-1"><Trophy className="size-3" />Top pick</span>}
-                </div>
-                <div>
-                  <p className="text-sm font-bold text-card-foreground">{o.company}</p>
-                  <p className="text-xs text-muted-foreground">{o.role}</p>
-                </div>
-                <div className="mt-1 flex items-center gap-1.5">
-                  <span className="text-lg font-bold text-card-foreground">{fmtMoney(tc, sym)}</span>
-                  <span className="text-xs text-muted-foreground">/yr total comp</span>
-                </div>
-                <div className="text-xs text-muted-foreground">
-                  Base {fmtMoney(o.baseSalary, sym)} + Equity {fmtMoney(o.equityValue / 4, sym)}/yr + Signing {fmtMoney(o.signingBonus / 4, sym)}/yr
-                </div>
-              </div>
-            )
-          })}
-        </div>
-      )}
-
-      {/* Comparison table */}
-      {liveOffers.length === 0 ? (
-        <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border py-20 text-center">
-          <TrendingUp className="size-8 text-muted-foreground mb-3" />
-          <p className="text-sm font-medium text-foreground">No offers yet</p>
-          <p className="mt-1 text-sm text-muted-foreground">Add an offer below to start comparing.</p>
-        </div>
-      ) : liveOffers.length === 1 ? (
-        // Single offer — show details without comparison
-        <div className="overflow-x-auto rounded-xl border border-border bg-card shadow-sm">
-          <div className="min-w-fit">
-            <div className="grid items-stretch border-b border-border" style={{ gridTemplateColumns: "minmax(160px,1fr) minmax(200px,1.4fr)" }}>
-              <div className="flex items-end p-4">
-                <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Offer details</span>
-              </div>
-              {liveOffers.map(o => {
-                const isEditing = editingId === o.id
-                return (
-                  <div key={o.id} className="relative border-l border-border p-4">
-                    <div className="absolute right-2 top-2 flex items-center gap-1">
-                      {isEditing ? (
-                        <button onClick={() => saveEdit(o.id)} disabled={saving} className="rounded-md p-1 text-emerald-400 hover:bg-secondary">
-                          {saving ? <Loader2 className="size-3.5 animate-spin" /> : <Check className="size-3.5" />}
-                        </button>
-                      ) : (
-                        <button onClick={() => startEdit(o)} className="rounded-md p-1 text-muted-foreground hover:bg-secondary hover:text-foreground">
-                          <Pencil className="size-3.5" />
-                        </button>
-                      )}
-                      <button onClick={() => deleteOffer(o.id)} className="rounded-md p-1 text-muted-foreground hover:bg-secondary hover:text-red-400">
-                        <X className="size-3.5" />
-                      </button>
-                    </div>
-                    <div className="flex items-center gap-2.5 pr-14">
-                      <span className={cn("flex size-9 shrink-0 items-center justify-center rounded-full text-sm font-bold", o.logo)}>{o.initials}</span>
-                      <div>
-                        <p className="text-sm font-bold text-card-foreground">{o.company}</p>
-                        <p className="text-xs text-muted-foreground">{o.role}</p>
-                      </div>
-                    </div>
-                    {isEditing && <span className="mt-2 inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary">Editing — click ✓ to save</span>}
-                  </div>
-                )
-              })}
-            </div>
-            {ROWS.map((row, i) => (
-              <div key={row.key} className={cn("grid items-center", i !== ROWS.length - 1 && "border-b border-border")}
-                style={{ gridTemplateColumns: "minmax(160px,1fr) minmax(200px,1.4fr)" }}>
-                <div className="p-4 text-sm font-medium text-muted-foreground">{row.label}</div>
-                {liveOffers.map(o => (
-                  <div key={o.id} className="border-l border-border p-4 text-sm text-card-foreground">
-                    {row.render(o, editingId === o.id)}
-                  </div>
-                ))}
-              </div>
-            ))}
-          </div>
-        </div>
-      ) : (
-        <div className="overflow-x-auto rounded-xl border border-border bg-card shadow-sm">
-          <div className="min-w-fit">
-            <div className="grid items-stretch border-b border-border" style={gridCols}>
-              <div className="flex items-end p-4">
-                <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Offer details</span>
-              </div>
-              {liveOffers.map(o => {
-                const isEditing = editingId === o.id
-                return (
-                  <div key={o.id} className={cn("relative border-l border-border p-4", winner?.id === o.id && "bg-emerald-500/5")}>
-                    <div className="absolute right-2 top-2 flex items-center gap-1">
-                      {isEditing ? (
-                        <button onClick={() => saveEdit(o.id)} disabled={saving} className="rounded-md p-1 text-emerald-400 hover:bg-secondary">
-                          {saving ? <Loader2 className="size-3.5 animate-spin" /> : <Check className="size-3.5" />}
-                        </button>
-                      ) : (
-                        <button onClick={() => startEdit(o)} className="rounded-md p-1 text-muted-foreground hover:bg-secondary hover:text-foreground">
-                          <Pencil className="size-3.5" />
-                        </button>
-                      )}
-                      <button onClick={() => deleteOffer(o.id)} className="rounded-md p-1 text-muted-foreground hover:bg-secondary hover:text-red-400">
-                        <X className="size-3.5" />
-                      </button>
-                    </div>
-                    <div className="flex items-center gap-2.5 pr-14">
-                      <span className={cn("flex size-9 shrink-0 items-center justify-center rounded-full text-sm font-bold", o.logo)}>{o.initials}</span>
-                      <div className="min-w-0">
-                        <p className="truncate text-sm font-bold text-card-foreground">{o.company}</p>
-                        <p className="truncate text-xs text-muted-foreground">{o.role}</p>
-                      </div>
-                    </div>
-                    {isEditing && <span className="mt-2 inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary">Editing — click ✓ to save</span>}
-                  </div>
-                )
-              })}
-            </div>
-            {ROWS.map((row, i) => (
-              <div key={row.key} className={cn("grid items-center", i !== ROWS.length - 1 && "border-b border-border")} style={gridCols}>
-                <div className="p-4 text-sm font-medium text-muted-foreground">{row.label}</div>
-                {liveOffers.map(o => {
-                  const isBest = winnersByRow[row.key]?.has(o.id)
-                  const isEditing = editingId === o.id
-                  return (
-                    <div key={o.id} className={cn("border-l border-border p-4 text-sm text-card-foreground", isBest && !isEditing && "bg-emerald-500/10")}>
-                      <div className="flex items-center gap-1.5">
-                        {isBest && !isEditing && <span className="size-1.5 shrink-0 rounded-full bg-emerald-400" />}
-                        <span className={cn(isBest && !isEditing && "font-semibold text-emerald-400")}>
-                          {row.render(o, isEditing)}
-                        </span>
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Add offer button / form */}
-      {liveOffers.length < 3 && !showForm && (
-        <Button type="button" variant="outline" onClick={() => { setShowForm(true); setDuplicateError("") }} className="gap-2 border-dashed bg-transparent w-fit">
-          <Plus className="size-4" /> Add Offer
-        </Button>
-      )}
-
+      {/* Add form — inline below header */}
       {showForm && (
-        <form onSubmit={handleAddOffer} className="rounded-xl border border-border bg-card p-5 flex flex-col gap-4 max-w-lg">
-          <h3 className="text-sm font-semibold text-foreground">Add Offer</h3>
+        <form onSubmit={handleAddOffer} className="border-b border-border p-4 flex flex-col gap-3">
           <div>
             <label className="mb-1 block text-xs font-medium text-muted-foreground">Application *</label>
             <select required value={form.applicationId} onChange={e => {
                 const app = applications.find(a => a.id === e.target.value)
                 setDuplicateError("")
-                setForm(f => ({
-                  ...f,
-                  applicationId: e.target.value,
-                  baseSalary: app?.salaryMin ? String(app.salaryMin) : f.baseSalary,
-                }))
+                setForm(f => ({ ...f, applicationId: e.target.value, baseSalary: app?.salaryMin ? String(app.salaryMin) : f.baseSalary }))
               }}
               className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:ring-1 focus:ring-primary">
               <option value="">Select application…</option>
@@ -428,92 +279,233 @@ export function WarRoom() {
             </select>
             {duplicateError && <p className="mt-1 text-xs text-red-400">{duplicateError}</p>}
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-2">
             {([
-              { key: "baseSalary", label: `Base Salary (${sym})` },
-              { key: "equityValue", label: `Equity Value (${sym})` },
-              { key: "signingBonus", label: `Signing Bonus (${sym})` },
-              { key: "cliffMonths", label: "Cliff (months)" },
+              { key: "baseSalary", label: `Base (${sym})` },
+              { key: "equityValue", label: `Equity (${sym})` },
+              { key: "signingBonus", label: `Signing (${sym})` },
+              { key: "cliffMonths", label: "Cliff (mo)" },
             ] as const).map(({ key, label }) => (
               <div key={key}>
-                <label className="mb-1 block text-xs font-medium text-muted-foreground">{label}</label>
+                <label className="mb-1 block text-[10px] font-medium text-muted-foreground">{label}</label>
                 <input type="number" value={(form as any)[key]}
                   onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))}
-                  className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:ring-1 focus:ring-primary" />
+                  className="w-full rounded-lg border border-border bg-background px-2 py-1.5 text-sm text-foreground outline-none focus:ring-1 focus:ring-primary" />
               </div>
             ))}
           </div>
           <div>
-            <label className="mb-1 block text-xs font-medium text-muted-foreground">Vesting Schedule</label>
+            <label className="mb-1 block text-[10px] font-medium text-muted-foreground">Vesting</label>
             <input value={form.vestingSchedule} onChange={e => setForm(f => ({ ...f, vestingSchedule: e.target.value }))}
-              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:ring-1 focus:ring-primary" />
+              className="w-full rounded-lg border border-border bg-background px-2 py-1.5 text-sm text-foreground outline-none focus:ring-1 focus:ring-primary" />
           </div>
           <div className="flex gap-2">
             <button type="submit" disabled={saving || !form.applicationId}
-              className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-50">
-              {saving && <Loader2 className="size-3.5 animate-spin" />} Save Offer
+              className="flex items-center gap-2 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-50">
+              {saving && <Loader2 className="size-3 animate-spin" />} Save
             </button>
             <button type="button" onClick={() => { setShowForm(false); setForm(EMPTY_FORM); setDuplicateError("") }}
-              className="rounded-lg border border-border px-4 py-2 text-sm text-muted-foreground hover:text-foreground">
+              className="rounded-lg border border-border px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground">
               Cancel
             </button>
           </div>
         </form>
       )}
 
-      {/* Negotiation tips — only with 2+ offers */}
-      {liveOffers.length >= 2 && winner && !aiInsights && !aiLoading && (
-        <NegotiationTips offers={liveOffers} winner={winner} sym={sym} />
-      )}
-
-      {/* AI Insights */}
-      {liveOffers.length > 0 && (
-        <div className="rounded-xl border border-primary/30 bg-primary/5 p-5 shadow-sm">
-          <div className="flex items-center justify-between gap-2 mb-3">
-            <div className="flex items-center gap-2">
-              <span className="flex size-7 items-center justify-center rounded-md bg-primary/15 text-primary">
-                <Sparkles className="size-4" />
-              </span>
-              <h2 className="text-sm font-bold text-foreground">AI Recommendation</h2>
-              <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">Powered by Amazon Nova</span>
-            </div>
-            <button onClick={() => fetchAiInsights(liveOffers)} disabled={aiLoading}
-              className="text-xs text-muted-foreground hover:text-foreground disabled:opacity-40 flex items-center gap-1">
-              <RefreshCw className={`size-3 ${aiLoading ? "animate-spin" : ""}`} />
-              {aiLoading ? "Analyzing…" : "Refresh"}
-            </button>
-          </div>
-
-          {aiLoading ? (
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Loader2 className="size-4 animate-spin" />
-              Amazon Nova is analyzing your offer{liveOffers.length > 1 ? "s" : ""}…
-            </div>
-          ) : aiInsights ? (
-            <div className="flex flex-col gap-4">
-              <p className="text-sm leading-relaxed text-muted-foreground">{aiInsights.recommendation}</p>
-              {aiInsights.negotiationTips?.length > 0 && (
-                <div>
-                  <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground flex items-center gap-1.5">
-                    <AlertTriangle className="size-3.5 text-amber-400" /> Negotiation Playbook
-                  </p>
-                  <ul className="flex flex-col gap-2">
-                    {aiInsights.negotiationTips.map((tip, i) => (
-                      <li key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
-                        <span className="mt-1 size-1.5 shrink-0 rounded-full bg-primary" />
-                        {tip}
-                      </li>
-                    ))}
-                  </ul>
+      {/* Offer list */}
+      {liveOffers.length === 0 ? (
+        <div className="flex flex-col items-center justify-center px-4 py-10 text-center">
+          <TrendingUp className="size-6 text-muted-foreground mb-2" />
+          <p className="text-sm text-muted-foreground">No offers yet. Add one to compare.</p>
+        </div>
+      ) : (
+        <div className="flex flex-col divide-y divide-border">
+          {liveOffers.map((offer) => {
+            const isWinner = winner?.id === offer.id
+            return (
+              <div key={offer.id} className={cn(
+                "flex flex-col gap-0.5 px-4 py-3 transition-colors",
+                isWinner && "bg-secondary/40 border-l-2 border-l-[oklch(0.70_0.14_162)]",
+              )}>
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className={cn("size-7 shrink-0 rounded-lg flex items-center justify-center text-[10px] font-bold", offer.logo)}>
+                      {offer.initials}
+                    </span>
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-semibold text-foreground">{offer.company}</p>
+                      <p className="truncate text-[11px] text-muted-foreground">{offer.role}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0">
+                    {isWinner && <Trophy className="size-3 text-[oklch(0.70_0.14_162)]" />}
+                    {editingId === offer.id ? (
+                      <button onClick={() => saveEdit(offer.id)} disabled={saving} className="rounded p-0.5 text-emerald-400 hover:bg-secondary">
+                        {saving ? <Loader2 className="size-3.5 animate-spin" /> : <Check className="size-3.5" />}
+                      </button>
+                    ) : (
+                      <button onClick={() => startEdit(offer)} className="rounded p-0.5 text-muted-foreground hover:bg-secondary hover:text-foreground">
+                        <Pencil className="size-3.5" />
+                      </button>
+                    )}
+                    <button onClick={() => deleteOffer(offer.id)} className="rounded p-0.5 text-muted-foreground hover:bg-secondary hover:text-red-400">
+                      <X className="size-3.5" />
+                    </button>
+                  </div>
                 </div>
-              )}
-            </div>
-          ) : (
-            <p className="text-sm text-muted-foreground">Add at least one offer to get AI-powered recommendations.</p>
-          )}
+                <div className="flex items-baseline gap-1.5 pl-9">
+                  <span className="font-num text-base font-bold text-foreground">{fmtMoney(totalComp(offer), sym)}</span>
+                  <span className="text-[10px] text-muted-foreground">total comp</span>
+                </div>
+              </div>
+            )
+          })}
         </div>
       )}
-    </div>
+    </>
+  )
+
+  return (
+    <TwoZone left={leftPanel} className="flex-1 min-h-0">
+      <div className="flex flex-col h-full">
+        {/* AI verdict banner — pinned at top of canvas */}
+        {(aiInsights || aiLoading) && (
+          <div className="shrink-0 border-b border-border bg-primary/5 px-6 py-4">
+            <div className="flex items-start gap-3">
+              <Sparkles className="size-4 shrink-0 text-primary mt-0.5" />
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-1">
+                  <p className="label-caps text-primary">AI Recommendation</p>
+                  <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">Amazon Nova</span>
+                </div>
+                {aiLoading ? (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Loader2 className="size-3.5 animate-spin" />
+                    Analyzing your offer{liveOffers.length > 1 ? "s" : ""}…
+                  </div>
+                ) : aiInsights ? (
+                  <>
+                    <p className="text-sm text-foreground leading-relaxed">{aiInsights.recommendation}</p>
+                    {aiInsights.negotiationTips?.length > 0 && (
+                      <ul className="mt-2 space-y-1">
+                        {aiInsights.negotiationTips.map((tip, i) => (
+                          <li key={i} className="flex items-start gap-1.5 text-xs text-muted-foreground">
+                            <span className="text-primary mt-0.5 shrink-0">·</span> {tip}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </>
+                ) : null}
+              </div>
+              <button onClick={() => fetchAiInsights(liveOffers)} disabled={aiLoading}
+                className="shrink-0 text-muted-foreground hover:text-foreground disabled:opacity-40 flex items-center gap-1 text-xs">
+                <RefreshCw className={cn("size-3", aiLoading && "animate-spin")} />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Canvas scrollable content */}
+        <div className="flex-1 overflow-y-auto p-6">
+          {liveOffers.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-full text-center">
+              <TrendingUp className="size-8 text-muted-foreground mb-3" />
+              <p className="text-sm font-medium text-foreground">No offers yet</p>
+              <p className="mt-1 text-sm text-muted-foreground">Add an offer to start comparing.</p>
+            </div>
+          ) : (
+            <>
+              {/* Summary cards */}
+              <div className={cn("grid gap-3 mb-6", liveOffers.length === 1 ? "grid-cols-1 max-w-sm" : "grid-cols-3")}>
+                {liveOffers.map(o => {
+                  const tc = totalComp(o)
+                  const isWinner = winner?.id === o.id
+                  return (
+                    <div key={o.id} className={cn("rounded-xl border border-border bg-card p-4 flex flex-col gap-2", isWinner && "border-[oklch(0.70_0.14_162)]/40 bg-[oklch(0.70_0.14_162)]/5")}>
+                      <div className="flex items-center justify-between">
+                        <span className={cn("flex size-8 items-center justify-center rounded-full text-xs font-bold", o.logo)}>{o.initials}</span>
+                        {isWinner && <span className="text-[10px] font-semibold text-[oklch(0.70_0.14_162)] flex items-center gap-1"><Trophy className="size-3" />Top pick</span>}
+                      </div>
+                      <div>
+                        <p className="text-sm font-bold text-card-foreground">{o.company}</p>
+                        <p className="text-xs text-muted-foreground">{o.role}</p>
+                      </div>
+                      <div className="mt-1">
+                        <span className="font-num text-xl font-bold text-card-foreground">{fmtMoney(tc, sym)}</span>
+                        <span className="text-xs text-muted-foreground ml-1">/yr total comp</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Base {fmtMoney(o.baseSalary, sym)} + Equity {fmtMoney(o.equityValue / 4, sym)}/yr
+                      </p>
+                    </div>
+                  )
+                })}
+              </div>
+
+              {/* Comparison table */}
+              <div className="overflow-x-auto rounded-xl border border-border bg-card shadow-sm">
+                <div className="min-w-fit">
+                  <div className="grid items-stretch border-b border-border" style={gridCols}>
+                    <div className="flex items-end p-4">
+                      <span className="label-caps text-muted-foreground">Offer details</span>
+                    </div>
+                    {liveOffers.map(o => (
+                      <div key={o.id} className={cn("relative border-l border-border p-4", winner?.id === o.id && liveOffers.length > 1 && "bg-[oklch(0.70_0.14_162)]/5")}>
+                        <div className="flex items-center gap-2.5 pr-4">
+                          <span className={cn("flex size-9 shrink-0 items-center justify-center rounded-full text-sm font-bold", o.logo)}>{o.initials}</span>
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-bold text-card-foreground">{o.company}</p>
+                            <p className="truncate text-xs text-muted-foreground">{o.role}</p>
+                          </div>
+                        </div>
+                        {editingId === o.id && <span className="mt-2 inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary">Editing — click ✓ to save</span>}
+                      </div>
+                    ))}
+                  </div>
+                  {ROWS.map((row, i) => (
+                    <div key={row.key} className={cn("grid items-center", i !== ROWS.length - 1 && "border-b border-border")} style={gridCols}>
+                      <div className="p-4 text-sm font-medium text-muted-foreground">{row.label}</div>
+                      {liveOffers.map(o => {
+                        const isBest = liveOffers.length > 1 && winnersByRow[row.key]?.has(o.id)
+                        const isEditing = editingId === o.id
+                        return (
+                          <div key={o.id} className={cn("border-l border-border p-4 text-sm text-card-foreground", isBest && !isEditing && "bg-emerald-500/10")}>
+                            <div className="flex items-center gap-1.5">
+                              {isBest && !isEditing && <span className="size-1.5 shrink-0 rounded-full bg-emerald-400" />}
+                              <span className={cn(isBest && !isEditing && "font-semibold text-emerald-400")}>
+                                {row.render(o, isEditing)}
+                              </span>
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Negotiation tips */}
+              {liveOffers.length >= 2 && winner && !aiInsights && !aiLoading && (
+                <div className="mt-6">
+                  <NegotiationTips offers={liveOffers} winner={winner} sym={sym} />
+                </div>
+              )}
+
+              {/* AI trigger (if no insights yet) */}
+              {!aiInsights && !aiLoading && liveOffers.length > 0 && (
+                <button
+                  onClick={() => fetchAiInsights(liveOffers)}
+                  className="mt-4 flex items-center gap-2 rounded-xl border border-primary/30 px-4 py-2.5 text-sm text-primary hover:bg-primary/10 transition-colors"
+                >
+                  <Sparkles className="size-4" /> Get AI recommendation
+                </button>
+              )}
+            </>
+          )}
+        </div>
+      </div>
+    </TwoZone>
   )
 }
 function NegotiationTips({ offers, winner, sym = "₹" }: { offers: OfferWithRaw[]; winner: Offer; sym?: string }) {

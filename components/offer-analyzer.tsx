@@ -11,6 +11,7 @@ import {
 import { ClauseCard } from "@/components/clause-card"
 import { OfferTextView } from "@/components/offer-text-view"
 import { OfferUpload } from "@/components/offer-upload"
+import { TwoZone } from "@/components/two-zone"
 import { cn } from "@/lib/utils"
 
 type Suggestion = {
@@ -189,91 +190,93 @@ export function OfferAnalyzer() {
   }
 
   return (
-    <div className="grid h-full gap-4 lg:grid-cols-2">
-      {/* LEFT PANEL */}
-      <section className="flex min-h-0 flex-col gap-4">
-        {!loaded ? (
-          <>
-            <OfferUpload onLoadSample={() => analyze(OFFER_TEXT)} onFileText={(text) => analyze(text)} />
-            <div className="flex min-h-0 flex-1 flex-col rounded-lg border border-border bg-card/40 p-1">
-              <textarea
-                value={pasted}
-                onChange={(e) => setPasted(e.target.value)}
-                placeholder="…or paste your offer letter text here"
-                className="min-h-48 flex-1 resize-none rounded-md bg-transparent p-4 text-[13px] leading-relaxed text-card-foreground outline-none placeholder:text-muted-foreground"
-              />
-              {error && <p className="px-4 pb-2 text-xs text-red-400">{error}</p>}
-              {pasted.trim().length > 0 && (
+    <TwoZone
+      left={
+        <section className="flex min-h-0 flex-1 flex-col gap-4 p-4">
+          <p className="label-caps text-muted-foreground">Offer Letter</p>
+          {!loaded ? (
+            <>
+              <OfferUpload onLoadSample={() => analyze(OFFER_TEXT)} onFileText={(text) => analyze(text)} />
+              <div className="flex min-h-0 flex-1 flex-col rounded-lg border border-border bg-card/40 p-1">
+                <textarea
+                  value={pasted}
+                  onChange={(e) => setPasted(e.target.value)}
+                  placeholder="…or paste your offer letter text here"
+                  className="min-h-48 flex-1 resize-none rounded-md bg-transparent p-4 text-[13px] leading-relaxed text-card-foreground outline-none placeholder:text-muted-foreground"
+                />
+                {error && <p className="px-4 pb-2 text-xs text-red-400">{error}</p>}
+                {pasted.trim().length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => analyze(pasted)}
+                    disabled={analyzing}
+                    className="m-2 flex items-center justify-center gap-2 rounded-md bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-60"
+                  >
+                    {analyzing && <Loader2 className="size-3 animate-spin" />}
+                    {analyzing ? "Analyzing…" : "Analyze with Claude"}
+                  </button>
+                )}
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="flex items-center justify-between gap-3 rounded-lg border border-border bg-card px-4 py-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="flex size-8 items-center justify-center rounded-md bg-secondary text-secondary-foreground">
+                    <FileText className="size-4" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-card-foreground">
+                      {meta?.company ? `${meta.company}${meta.role ? ` · ${meta.role}` : ""}` : "Offer Analysis"}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {clauses.length} clauses identified
+                      {meta?.baseSalary ? ` · $${(meta.baseSalary / 1000).toFixed(0)}k base` : ""}
+                    </p>
+                  </div>
+                </div>
                 <button
                   type="button"
-                  onClick={() => analyze(pasted)}
-                  disabled={analyzing}
-                  className="m-2 flex items-center justify-center gap-2 rounded-md bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-60"
+                  onClick={reset}
+                  className="inline-flex items-center gap-1.5 rounded-md bg-secondary px-2.5 py-1.5 text-xs font-medium text-secondary-foreground transition-colors hover:bg-accent"
                 >
-                  {analyzing && <Loader2 className="size-3 animate-spin" />}
-                  {analyzing ? "Analyzing…" : "Analyze with Claude"}
+                  <RotateCcw className="size-3.5" />
+                  New
                 </button>
-              )}
-            </div>
-          </>
-        ) : (
-          <>
-            <div className="flex items-center justify-between gap-3 rounded-lg border border-border bg-card px-4 py-3">
-              <div className="flex items-center gap-2.5">
-                <div className="flex size-8 items-center justify-center rounded-md bg-secondary text-secondary-foreground">
-                  <FileText className="size-4" />
-                </div>
-                <div>
-                  <p className="text-sm font-semibold text-card-foreground">
-                    {meta?.company ? `${meta.company}${meta.role ? ` · ${meta.role}` : ""}` : "Offer Analysis"}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {clauses.length} clauses identified
-                    {meta?.baseSalary ? ` · $${(meta.baseSalary / 1000).toFixed(0)}k base` : ""}
-                  </p>
-                </div>
               </div>
-              <button
-                type="button"
-                onClick={reset}
-                className="inline-flex items-center gap-1.5 rounded-md bg-secondary px-2.5 py-1.5 text-xs font-medium text-secondary-foreground transition-colors hover:bg-accent"
-              >
-                <RotateCcw className="size-3.5" />
-                New
-              </button>
-            </div>
 
-            {/* Smart suggestions */}
-            {suggestions.length > 0 && (
-              <div className="flex flex-col gap-2">
-                {suggestions.map((s, i) => (
-                  <SuggestionBanner
-                    key={i}
-                    suggestion={s}
-                    onDismiss={() => setSuggestions(prev => prev.filter((_, j) => j !== i))}
-                    onFollowUp={(followUp) => setSuggestions(prev => [...prev.filter((_, j) => j !== i), followUp])}
-                  />
-                ))}
+              <div className="min-h-0 flex-1">
+                <OfferTextView
+                  text={offerText}
+                  clauses={clauses}
+                  activeClauseId={activeId}
+                  onHighlightClick={(id) => {
+                    setActiveId(id)
+                    setExpandedId(id)
+                  }}
+                />
               </div>
-            )}
-
-            <div className="min-h-0 flex-1">
-              <OfferTextView
-                text={offerText}
-                clauses={clauses}
-                activeClauseId={activeId}
-                onHighlightClick={(id) => {
-                  setActiveId(id)
-                  setExpandedId(id)
-                }}
+            </>
+          )}
+        </section>
+      }
+      className="flex-1 min-h-0"
+    >
+      <section className="flex min-h-0 flex-col gap-4 p-4">
+        {/* Smart suggestions */}
+        {suggestions.length > 0 && (
+          <div className="flex flex-col gap-2">
+            {suggestions.map((s, i) => (
+              <SuggestionBanner
+                key={i}
+                suggestion={s}
+                onDismiss={() => setSuggestions(prev => prev.filter((_, j) => j !== i))}
+                onFollowUp={(followUp) => setSuggestions(prev => [...prev.filter((_, j) => j !== i), followUp])}
               />
-            </div>
-          </>
+            ))}
+          </div>
         )}
-      </section>
 
-      {/* RIGHT PANEL */}
-      <section className="flex min-h-0 flex-col gap-4">
         <div className="grid grid-cols-4 gap-2 rounded-lg border border-border bg-card p-3">
           <SummaryStat label="Clauses" value={clauses.length} dot="bg-muted-foreground" />
           <SummaryStat label="Standard" value={counts.green} dot={RISK_CONFIG.green.dot} />
@@ -304,7 +307,7 @@ export function OfferAnalyzer() {
           )}
         </div>
       </section>
-    </div>
+    </TwoZone>
   )
 }
 

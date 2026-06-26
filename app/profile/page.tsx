@@ -1,7 +1,6 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { AppHeader } from "@/components/app-header"
 import { Loader2, Save, User, MapPin, Briefcase, Link2, ExternalLink } from "lucide-react"
 import { useCurrency } from "@/lib/currency-context"
 
@@ -86,15 +85,19 @@ export default function ProfilePage() {
   const initials = (form.name ?? form.email ?? "?").slice(0, 2).toUpperCase()
 
   return (
-    <main className="min-h-svh bg-background">
-      <AppHeader />
-      <div className="mx-auto max-w-2xl px-6 py-8">
+    <div className="overflow-y-auto h-full">
+    <div className="px-8 py-7">
+      <div className="mb-6">
+        <h1 className="text-xl font-bold tracking-tight text-foreground">Profile</h1>
+        <p className="mt-0.5 text-sm text-muted-foreground">Your job search identity and preferences.</p>
+      </div>
+      <div className="mx-auto max-w-2xl">
         <div className="mb-6 flex items-center gap-4">
-          <div className="flex size-16 items-center justify-center rounded-full bg-primary/20 text-xl font-bold text-primary">
+          <div className="flex size-14 items-center justify-center rounded-full bg-primary/15 text-lg font-bold text-primary">
             {initials}
           </div>
           <div>
-            <h2 className="text-xl font-bold text-foreground">{form.name ?? "Your Profile"}</h2>
+            <h2 className="text-base font-semibold text-foreground">{form.name ?? "Your Profile"}</h2>
             <p className="text-sm text-muted-foreground">{form.email}</p>
           </div>
         </div>
@@ -176,6 +179,7 @@ export default function ProfilePage() {
           </form>
         )}
       </div>
-    </main>
+    </div>
+    </div>
   )
 }

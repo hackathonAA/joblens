@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { Sparkles, Loader2, CheckCircle, AlertTriangle, Info, Link2, X } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useSearchParams } from "next/navigation"
+import { TwoZone } from "@/components/two-zone"
 
 type JDResult = {
   requiredSkills: string[]
@@ -121,71 +122,68 @@ export function JdAnalyzer() {
   }
 
   return (
-    <div className="flex flex-col gap-4">
-      {/* Profile completeness nudge */}
-      {!profileComplete && missingFields.length > 0 && (
-        <div className="flex items-start gap-3 rounded-xl border border-yellow-500/30 bg-yellow-500/5 px-4 py-3">
-          <Info className="size-4 text-yellow-400 shrink-0 mt-0.5" />
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-card-foreground">Complete your profile for a better fit score</p>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              Missing: <span className="font-medium text-yellow-400">{missingFields.join(", ")}</span>
-              {" — "}
-              <a href="/profile" className="text-primary hover:underline">Update profile →</a>
-            </p>
-          </div>
-        </div>
-      )}
+    <TwoZone
+      left={
+        <div className="flex flex-col gap-4 p-4 h-full">
+          <p className="label-caps text-muted-foreground">Job Description</p>
 
-      <div className="grid gap-6 lg:grid-cols-[1fr_420px]">
-      {/* Left: Input */}
-      <div className="flex flex-col gap-4">
-        <div>
-          <div className="flex items-center justify-between mb-2">
-            <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Job Description</label>
-            <span className="text-[11px] text-muted-foreground">{charCount} chars</span>
-          </div>
           <textarea
             value={jd}
             onChange={e => { setJd(e.target.value); setCharCount(e.target.value.length) }}
-            placeholder="Paste the full job description here…&#10;&#10;Include the role summary, requirements, and nice-to-haves for the best analysis."
-            rows={18}
-            className="w-full resize-none rounded-xl border border-border bg-background/60 p-4 text-[13px] leading-relaxed text-card-foreground outline-none transition-colors placeholder:text-muted-foreground/40 focus:border-primary/60 focus:ring-1 focus:ring-primary/40 font-mono"
+            placeholder={"Paste the full job description here…\n\nInclude role summary, requirements, and nice-to-haves."}
+            className="flex-1 resize-none rounded-xl border border-border bg-background/60 p-3 text-[13px] leading-relaxed text-card-foreground outline-none transition-colors placeholder:text-muted-foreground/40 focus:border-primary/60 focus:ring-1 focus:ring-primary/40 font-mono"
           />
-        </div>
 
-        {/* Link to application */}
-        <div className="flex items-center gap-3 rounded-xl border border-border bg-background/40 px-4 py-3">
-          <Link2 className="size-4 text-muted-foreground shrink-0" />
-          <select
-            value={linkedAppId}
-            onChange={e => setLinkedAppId(e.target.value)}
-            className="flex-1 bg-transparent text-sm text-foreground outline-none"
-          >
-            <option value="">Link to application in tracker (optional)</option>
-            {apps.map(a => (
-              <option key={a.id} value={a.id}>{a.company} — {a.role}</option>
-            ))}
-          </select>
-          {linkedAppId && (
-            <button onClick={() => setLinkedAppId("")} className="text-muted-foreground hover:text-foreground">
-              <X className="size-3.5" />
+          <div className="flex items-center gap-3 rounded-lg border border-border bg-background/40 px-3 py-2">
+            <Link2 className="size-3.5 text-muted-foreground shrink-0" />
+            <select
+              value={linkedAppId}
+              onChange={e => setLinkedAppId(e.target.value)}
+              className="flex-1 bg-transparent text-sm text-foreground outline-none"
+            >
+              <option value="">Link to application (optional)</option>
+              {apps.map(a => (
+                <option key={a.id} value={a.id}>{a.company} — {a.role}</option>
+              ))}
+            </select>
+            {linkedAppId && (
+              <button onClick={() => setLinkedAppId("")} className="text-muted-foreground hover:text-foreground">
+                <X className="size-3" />
+              </button>
+            )}
+          </div>
+
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] text-muted-foreground">{charCount} chars</span>
+            <button
+              onClick={analyze}
+              disabled={loading || !jd.trim()}
+              className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-50 transition-opacity"
+            >
+              {loading ? <Loader2 className="size-3.5 animate-spin" /> : <Sparkles className="size-3.5" />}
+              {loading ? "Analyzing…" : "Analyze JD"}
             </button>
-          )}
+          </div>
         </div>
+      }
+      className="flex-1 min-h-0"
+    >
+      <div className="flex flex-col gap-4 p-6 overflow-y-auto">
+        {/* Profile completeness nudge */}
+        {!profileComplete && missingFields.length > 0 && (
+          <div className="flex items-start gap-3 rounded-xl border border-yellow-500/30 bg-yellow-500/5 px-4 py-3">
+            <Info className="size-4 text-yellow-400 shrink-0 mt-0.5" />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-card-foreground">Complete your profile for a better fit score</p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Missing: <span className="font-medium text-yellow-400">{missingFields.join(", ")}</span>
+                {" — "}
+                <a href="/profile" className="text-primary hover:underline">Update profile →</a>
+              </p>
+            </div>
+          </div>
+        )}
 
-        <button
-          onClick={analyze}
-          disabled={loading || !jd.trim()}
-          className="flex items-center justify-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-50 transition-opacity"
-        >
-          {loading ? <Loader2 className="size-4 animate-spin" /> : <Sparkles className="size-4" />}
-          {loading ? "Analyzing with Amazon Nova…" : "Analyze JD"}
-        </button>
-      </div>
-
-      {/* Right: Results */}
-      <div className="flex flex-col gap-4">
         {!result && !loading && (
           <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border py-20 text-center">
             <Sparkles className="size-8 text-muted-foreground/40 mb-3" />
@@ -207,7 +205,7 @@ export function JdAnalyzer() {
             <div className={cn("rounded-2xl border p-5", fitBg(result.fitScore))}>
               <div className="flex items-center justify-between mb-3">
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">Fit Score</p>
+                  <p className="label-caps text-muted-foreground mb-1">Fit Score</p>
                   <p className="text-xs text-muted-foreground">{fitLabel(result.fitScore)}</p>
                 </div>
                 <span className={cn("text-5xl font-black leading-none", fitColor(result.fitScore))}>
@@ -312,7 +310,6 @@ export function JdAnalyzer() {
           </>
         )}
       </div>
-    </div>
-    </div>
+    </TwoZone>
   )
 }
