@@ -2,7 +2,7 @@ import { NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/app/api/auth/[...nextauth]/route"
 import { db } from "@/lib/db"
-import { applications, users } from "@/lib/schema"
+import { applications, users, interviewRounds } from "@/lib/schema"
 import { eq } from "drizzle-orm"
 import { getUserColumns } from "@/lib/column-defaults"
 
@@ -19,9 +19,10 @@ export async function GET() {
   const user = await getUser(session)
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
-  const [apps, cols] = await Promise.all([
+  const [apps, cols, rounds] = await Promise.all([
     db.select().from(applications).where(eq(applications.userId, user.id)),
     getUserColumns(user.id),
+    db.select().from(interviewRounds),
   ])
 
   const colsByKey = new Map(cols.map(c => [c.columnKey, c]))
@@ -112,6 +113,43 @@ export async function GET() {
     insightTone = "good"
   }
 
+  // Stale applications (not updated in 7+ days, not rejected/offer)
+  const excludeFromStale = new Set([
+    ...cols.filter(c => c.isRejected).map(c => c.columnKey),
+    ...cols.filter(c => c.isOfferStage).map(c => c.columnKey),
+  ])
+  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+  const staleApps = apps
+    .filter(a => {
+      if (excludeFromStale.has(a.status ?? "")) return false
+      return new Date(a.updatedAt ?? a.appliedAt ?? 0) < sevenDaysAgo
+    })
+    .sort((a, b) => new Date(a.updatedAt ?? a.appliedAt ?? 0).getTime() - new Date(b.updatedAt ?? b.appliedAt ?? 0).getTime())
+    .slice(0, 5)
+    .map(a => ({
+      id: a.id,
+      company: a.company,
+      role: a.role,
+      status: a.status,
+      daysSince: Math.floor((Date.now() - new Date(a.updatedAt ?? a.appliedAt ?? 0).getTime()) / 86400000),
+    }))
+
+  // Rejection pattern — stage counts from interview rounds
+  const appIds = new Set(apps.map(a => a.id))
+  const userRounds = rounds.filter(r => appIds.has(r.applicationId))
+  const failedRounds: Record<string, number> = {}
+  for (const r of userRounds) {
+    if (r.outcome === "failed") failedRounds[r.roundType] = (failedRounds[r.roundType] ?? 0) + 1
+  }
+  const totalRejected = apps.filter(a => rejectedKeys.has(a.status ?? "")).length
+  const worstStage = Object.entries(failedRounds).sort((a, b) => b[1] - a[1])[0]?.[0] ?? null
+  const rejectionPattern = totalRejected >= 2 ? {
+    worstStage,
+    totalRejected,
+    failedRounds,
+    rejectionRate: total > 0 ? Math.round((totalRejected / total) * 100) : 0,
+  } : null
+
   return NextResponse.json({
     stats: [
       { label: "Total Applications", value: String(total), sublabel: `${rejected.length} rejected · ${offerCount} offer${offerCount !== 1 ? "s" : ""}`, tone: "neutral" },
@@ -124,5 +162,7 @@ export async function GET() {
     responseRateTrend: responseTrend,
     funnel,
     topInsight: { title: insightTitle, body: insightBody, cta: total === 0 ? "Go to Tracker" : offerCount > 0 ? "Open War Room" : "Review Applications", tone: insightTone },
+    staleApps,
+    rejectionPattern,
   })
 }

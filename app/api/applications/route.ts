@@ -26,7 +26,23 @@ export async function GET(req: NextRequest) {
     rows = rows.filter(r => !rejectedKeys.has(r.status ?? ""))
   }
 
-  return NextResponse.json(rows)
+  // Attach latest fitScore per application — guarded in case migration hasn't run yet
+  const fitMap = new Map<string, number>()
+  try {
+    const extractions = await db.execute(
+      `SELECT application_id, fit_score FROM jd_extractions WHERE fit_score IS NOT NULL ORDER BY created_at DESC`
+    ) as any[]
+    for (const e of extractions) {
+      if (e.application_id && !fitMap.has(e.application_id)) {
+        fitMap.set(e.application_id, e.fit_score)
+      }
+    }
+  } catch {
+    // columns not migrated yet — skip fitScore silently
+  }
+
+  const result = rows.map(r => ({ ...r, fitScore: fitMap.get(r.id) ?? null }))
+  return NextResponse.json(result)
 }
 
 export async function POST(req: NextRequest) {

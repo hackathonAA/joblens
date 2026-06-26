@@ -15,6 +15,7 @@ export type JobCard = {
   location?: string
   jobUrl?: string
   notes?: string
+  fitScore?: number
 }
 
 export type Column = {
@@ -22,10 +23,10 @@ export type Column = {
   title: string
 }
 
-export function formatSalary(min: number, max: number): string {
+export function formatSalary(min: number, max: number, symbol = "\u20b9"): string {
   if (!min && !max) return "Salary TBD"
-  if (!max) return `$${min}k+`
-  return `$${min}k\u2013$${max}k`
+  if (!max) return `${symbol}${min}+`
+  return `${symbol}${min}\u2013${symbol}${max}`
 }
 
 export function daysSince(iso: string): string {

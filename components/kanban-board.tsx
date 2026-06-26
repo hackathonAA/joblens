@@ -32,6 +32,7 @@ function dbRowToCard(row: any, rejectedKeys: Set<string>): JobCardType {
     location: row.location ?? undefined,
     jobUrl: row.jobUrl ?? undefined,
     notes: row.notes ?? undefined,
+    fitScore: row.fitScore ?? undefined,
   }
 }
 
@@ -76,6 +77,17 @@ export function KanbanBoard() {
     const destColumnKey: string | undefined = overColumn?.columnKey ?? overCard?.columnId
 
     if (!destColumnKey || destColumnKey === activeCardData.columnId) return
+
+    // If moving to rejected column, remove from war room if offer exists
+    if (rejectedKeys.has(destColumnKey)) {
+      fetch(`/api/offers?applicationId=${activeId}`)
+        .then(r => r.ok ? r.json() : [])
+        .then((offers: any[]) => {
+          const match = Array.isArray(offers) && offers.find((o: any) => o.applicationId === activeId || o._raw?.applicationId === activeId)
+          if (match?.id) fetch(`/api/offers/${match.id}`, { method: "DELETE" })
+        })
+        .catch(() => {})
+    }
 
     setCards(prev => {
       const moving = prev.find(c => c.id === activeId)

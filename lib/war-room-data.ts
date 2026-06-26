@@ -101,11 +101,11 @@ export const REC_CONFIG: Record<Recommendation, string> = {
     "bg-red-500/15 text-red-400 ring-1 ring-inset ring-red-500/25",
 }
 
-export const fmtMoney = (n: number) =>
+export const fmtMoney = (n: number, symbol = "₹") =>
   n === 0
-    ? "$0"
+    ? `${symbol}0`
     : n >= 1000
-      ? `$${Math.round(n / 1000)}k`
-      : `$${n.toLocaleString()}`
+      ? `${symbol}${Math.round(n / 1000)}k`
+      : `${symbol}${n.toLocaleString()}`
 
-export const fmtFull = (n: number) => `$${n.toLocaleString()}`
+export const fmtFull = (n: number, symbol = "₹") => `${symbol}${n.toLocaleString()}`

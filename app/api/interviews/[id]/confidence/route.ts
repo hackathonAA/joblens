@@ -36,8 +36,15 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   if (!round) return NextResponse.json({ error: "Round not found" }, { status: 404 })
 
   const questions = await db.select().from(interviewQuestions).where(eq(interviewQuestions.roundId, id))
-
   const ratedQuestions = questions.filter(q => q.rating != null && q.whatISaid)
+
+  // Require at least 1 rated question OR a non-empty experience note — prevent hallucination
+  if (ratedQuestions.length === 0 && !overallExperience?.trim()) {
+    return NextResponse.json({
+      error: "insufficient_data",
+      message: "Please rate at least one question or write your overall experience first.",
+    }, { status: 422 })
+  }
 
   const questionSummary = ratedQuestions.map(q => `
 Q: ${q.question}

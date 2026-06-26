@@ -11,7 +11,7 @@ async function getUser(session: any) {
   return user ?? null
 }
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions)
   const user = await getUser(session)
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
@@ -21,7 +21,11 @@ export async function GET() {
   if (appIds.length === 0) return NextResponse.json([])
 
   const offers = await db.select().from(offerLetters)
-  const userOffers = offers.filter(o => appIds.includes(o.applicationId))
+  let userOffers = offers.filter(o => appIds.includes(o.applicationId))
+
+  // Optional filter by applicationId
+  const appIdFilter = req.nextUrl.searchParams.get("applicationId")
+  if (appIdFilter) userOffers = userOffers.filter(o => o.applicationId === appIdFilter)
 
   return NextResponse.json(userOffers.map(o => {
     const app = apps.find(a => a.id === o.applicationId)

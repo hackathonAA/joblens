@@ -54,13 +54,16 @@ export function KanbanColumn({
         )}
       </div>
 
-      <button
-        type="button"
-        onClick={onAdd}
-        className="m-2 flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
-      >
-        <Plus className="size-4" /> Add
-      </button>
+      {/* Only show Add button on the default column */}
+      {column.isDefault && (
+        <button
+          type="button"
+          onClick={onAdd}
+          className="m-2 flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+        >
+          <Plus className="size-4" /> Add application
+        </button>
+      )}
     </div>
   )
 }

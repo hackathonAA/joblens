@@ -21,13 +21,19 @@ export async function GET() {
 
   const cols = await getUserColumns(user.id)
   const interviewKeys = cols.filter(c => c.isInterviewEligible).map(c => c.columnKey)
+  const rejectedKeys = new Set(cols.filter(c => c.isRejected).map(c => c.columnKey))
 
   const apps = await db.select().from(applications).where(eq(applications.userId, user.id))
-  const interviewableApps = apps.filter(a => interviewKeys.includes(a.status ?? ""))
+  const activeApps = apps.filter(a => interviewKeys.includes(a.status ?? ""))
+  const rejectedApps = apps.filter(a => rejectedKeys.has(a.status ?? ""))
 
   const allApps = await Promise.all(
-    interviewableApps.map(async (app) => {
+    [...activeApps, ...rejectedApps].map(async (app) => {
       const rounds = await db.select().from(interviewRounds).where(eq(interviewRounds.applicationId, app.id))
+
+      // Rejected with no rounds = went straight to rejected, skip entirely
+      if (rejectedKeys.has(app.status ?? "") && rounds.length === 0) return null
+
       const roundsWithQuestions = await Promise.all(
         rounds.map(async (round) => {
           const questions = await db.select().from(interviewQuestions).where(eq(interviewQuestions.roundId, round.id))
@@ -38,7 +44,7 @@ export async function GET() {
     })
   )
 
-  return NextResponse.json(allApps)
+  return NextResponse.json(allApps.filter(Boolean))
 }
 
 export async function POST(req: NextRequest) {

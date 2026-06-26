@@ -135,12 +135,16 @@ export const followUps = pgTable("follow_ups", {
 
 export const jdExtractions = pgTable("jd_extractions", {
   id: uuid("id").primaryKey().defaultRandom(),
-  applicationId: uuid("application_id").notNull().references(() => applications.id, { onDelete: "cascade" }),
+  applicationId: uuid("application_id").references(() => applications.id, { onDelete: "cascade" }),
   techStack: text("tech_stack").array(),
   senioritySignals: text("seniority_signals").array(),
   redFlags: text("red_flags").array(),
   salarySignals: text("salary_signals"),
   rawJd: text("raw_jd"),
+  requiredSkills: text("required_skills").array(),
+  niceToHaveSkills: text("nice_to_have_skills").array(),
+  fitScore: integer("fit_score"),
+  fitReason: text("fit_reason"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
 })
 

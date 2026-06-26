@@ -3,6 +3,7 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { UserGreeting } from "@/components/user-greeting"
+import { useCurrency, CURRENCIES } from "@/lib/currency-context"
 
 const NAV_ITEMS = [
   { href: "/", label: "Tracker" },
@@ -10,6 +11,7 @@ const NAV_ITEMS = [
   { href: "/war-room", label: "War Room" },
   { href: "/dashboard", label: "Dashboard" },
   { href: "/interview-logger", label: "Interviews" },
+  { href: "/jd-analyzer", label: "JD Analyzer" },
 ]
 
 const SUBTITLES: Record<string, string> = {
@@ -18,10 +20,12 @@ const SUBTITLES: Record<string, string> = {
   "/war-room": "Compare offers side by side and pick the best one.",
   "/dashboard": "Search velocity dashboard — your job hunt, measured.",
   "/interview-logger": "Log every round, spot your patterns.",
+  "/jd-analyzer": "Paste any JD — AI extracts skills, flags, and scores your fit.",
 }
 
 export function AppHeader() {
   const pathname = usePathname()
+  const { currency, setCurrency } = useCurrency()
 
   return (
     <header className="flex flex-wrap items-end justify-between gap-3 border-b border-border px-6 py-5">
@@ -47,6 +51,16 @@ export function AppHeader() {
             </Link>
           )
         )}
+        <select
+          value={currency.code}
+          onChange={e => { const c = CURRENCIES.find(c => c.code === e.target.value); if (c) setCurrency(c) }}
+          className="rounded-md border border-border bg-background px-2 py-1.5 text-sm font-medium text-muted-foreground outline-none hover:text-foreground focus:ring-1 focus:ring-primary cursor-pointer"
+          title="Currency"
+        >
+          {CURRENCIES.map(c => (
+            <option key={c.code} value={c.code}>{c.label}</option>
+          ))}
+        </select>
         <UserGreeting />
       </nav>
     </header>

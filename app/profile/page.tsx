@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react"
 import { AppHeader } from "@/components/app-header"
-import { Loader2, Save, User, MapPin, Briefcase, Link2, ExternalLink, DollarSign } from "lucide-react"
+import { Loader2, Save, User, MapPin, Briefcase, Link2, ExternalLink } from "lucide-react"
+import { useCurrency } from "@/lib/currency-context"
 
 type Profile = {
   id: string
@@ -33,6 +34,7 @@ function Field({ label, icon, children }: { label: string; icon?: React.ReactNod
 const inputClass = "w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:ring-1 focus:ring-primary placeholder:text-muted-foreground/60"
 
 export default function ProfilePage() {
+  const { currency } = useCurrency()
   const [profile, setProfile] = useState<Profile | null>(null)
   const [form, setForm] = useState<Partial<Profile>>({})
   const [loading, setLoading] = useState(true)
@@ -57,6 +59,11 @@ export default function ProfilePage() {
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault()
+    // Salary validation
+    if (form.targetSalaryMin && form.targetSalaryMax && form.targetSalaryMin >= form.targetSalaryMax) {
+      setError("Min salary must be less than max salary")
+      return
+    }
     setSaving(true)
     setError(null)
     const res = await fetch("/api/profile", {
@@ -137,11 +144,11 @@ export default function ProfilePage() {
                     <input value={form.targetRole ?? ""} onChange={e => set("targetRole", e.target.value)} placeholder="Staff Engineer, Engineering Manager…" className={inputClass} />
                   </Field>
                 </div>
-                <Field label="Target Salary Min (k)" icon={<DollarSign className="size-3" />}>
-                  <input type="number" value={form.targetSalaryMin ?? ""} onChange={e => set("targetSalaryMin", parseInt(e.target.value) || undefined)} placeholder="150" className={inputClass} />
+                <Field label={`Target Salary Min (${currency.symbol})`} icon={<span className="text-xs text-muted-foreground">{currency.symbol}</span>}>
+                  <input type="number" value={form.targetSalaryMin ?? ""} onChange={e => set("targetSalaryMin", parseInt(e.target.value) || undefined)} placeholder="e.g. 1500000" className={inputClass} />
                 </Field>
-                <Field label="Target Salary Max (k)" icon={<DollarSign className="size-3" />}>
-                  <input type="number" value={form.targetSalaryMax ?? ""} onChange={e => set("targetSalaryMax", parseInt(e.target.value) || undefined)} placeholder="250" className={inputClass} />
+                <Field label={`Target Salary Max (${currency.symbol})`} icon={<span className="text-xs text-muted-foreground">{currency.symbol}</span>}>
+                  <input type="number" value={form.targetSalaryMax ?? ""} onChange={e => set("targetSalaryMax", parseInt(e.target.value) || undefined)} placeholder="e.g. 2500000" className={inputClass} />
                 </Field>
               </div>
             </section>

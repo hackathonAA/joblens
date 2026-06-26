@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { X } from "lucide-react"
 import type { JobCard } from "@/lib/kanban-data"
+import { useCurrency } from "@/lib/currency-context"
 
 export function EditCardModal({
   card,
@@ -18,17 +19,27 @@ export function EditCardModal({
   const [salaryMin, setSalaryMin] = useState(String(card.salaryMin || ""))
   const [salaryMax, setSalaryMax] = useState(String(card.salaryMax || ""))
   const [notes, setNotes] = useState(card.notes ?? "")
+  const { currency } = useCurrency()
   const [location, setLocation] = useState(card.location ?? "")
   const [jobUrl, setJobUrl] = useState(card.jobUrl ?? "")
+
+  const [salaryError, setSalaryError] = useState("")
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!company.trim() || !role.trim()) return
+    const min = parseInt(salaryMin) || 0
+    const max = parseInt(salaryMax) || 0
+    if (min > 0 && max > 0 && min >= max) {
+      setSalaryError("Min salary must be less than max salary")
+      return
+    }
+    setSalaryError("")
     onSave({
       company: company.trim(),
       role: role.trim(),
-      salaryMin: parseInt(salaryMin) || 0,
-      salaryMax: parseInt(salaryMax) || 0,
+      salaryMin: min,
+      salaryMax: max,
       notes: notes.trim(),
       location: location.trim(),
       jobUrl: jobUrl.trim(),
@@ -58,15 +69,16 @@ export function EditCardModal({
                 className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:ring-1 focus:ring-primary" />
             </div>
             <div>
-              <label className="mb-1 block text-xs font-medium text-muted-foreground">Salary Min (k)</label>
-              <input type="number" value={salaryMin} onChange={e => setSalaryMin(e.target.value)} placeholder="150"
+              <label className="mb-1 block text-xs font-medium text-muted-foreground">Min Salary ({currency.symbol})</label>
+              <input type="number" value={salaryMin} onChange={e => { setSalaryMin(e.target.value); setSalaryError("") }} placeholder="e.g. 15"
                 className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:ring-1 focus:ring-primary" />
             </div>
             <div>
-              <label className="mb-1 block text-xs font-medium text-muted-foreground">Salary Max (k)</label>
-              <input type="number" value={salaryMax} onChange={e => setSalaryMax(e.target.value)} placeholder="200"
+              <label className="mb-1 block text-xs font-medium text-muted-foreground">Max Salary ({currency.symbol})</label>
+              <input type="number" value={salaryMax} onChange={e => { setSalaryMax(e.target.value); setSalaryError("") }} placeholder="e.g. 20"
                 className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:ring-1 focus:ring-primary" />
             </div>
+            {salaryError && <p className="col-span-2 text-xs text-red-400">{salaryError}</p>}
             <div className="col-span-2">
               <label className="mb-1 block text-xs font-medium text-muted-foreground">Location</label>
               <input value={location} onChange={e => setLocation(e.target.value)} placeholder="e.g. San Francisco, CA (Remote)"

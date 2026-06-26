@@ -18,7 +18,7 @@ export function ApplicationFunnel({ stages }: { stages: FunnelStage[] }) {
         {stages.map((stage, i) => {
           const widthPct = Math.max((stage.count / max) * 100, 8)
           const prev = stages[i - 1]
-          const dropOff = prev
+          const dropOff = prev && prev.count > 0
             ? Math.round(((prev.count - stage.count) / prev.count) * 100)
             : null
 

@@ -751,6 +751,7 @@ function ExperienceTab({
   const [experience, setExperience] = useState(round.overallExperience ?? "")
   const [scoring, setScoring] = useState(false)
   const [scored, setScored] = useState(false)
+  const [scoreError, setScoreError] = useState("")
 
   const ratedCount = round.questions.filter(q => q.rating != null).length
   const avgRating = ratedCount > 0
@@ -760,11 +761,18 @@ function ExperienceTab({
   async function computeConfidence() {
     setScoring(true)
     setScored(false)
+    setScoreError("")
     const res = await fetch(`/api/interviews/${round.id}/confidence`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ overallExperience: experience.trim() || undefined }),
     })
+    if (res.status === 422) {
+      const data = await res.json()
+      setScoreError(data.message ?? "Add some data first.")
+      setScoring(false)
+      return
+    }
     const { score, reason } = await res.json()
     onPatchRoundLocal(round.id, {
       confidenceScore: score,
@@ -842,6 +850,11 @@ function ExperienceTab({
         {scored && !scoring && (
           <div className="mt-3 flex items-center gap-1.5 text-xs text-emerald-400">
             <CheckCircle className="size-3.5" /> Score updated
+          </div>
+        )}
+        {scoreError && !scoring && (
+          <div className="mt-3 flex items-center gap-1.5 text-xs text-yellow-400">
+            <AlertCircle className="size-3.5" /> {scoreError}
           </div>
         )}
       </div>
@@ -932,17 +945,19 @@ function QuestionBank({ rounds, onPatchQuestion, onDeleteQuestion }: {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editForm, setEditForm] = useState<{ question: string; topicTag: string }>({ question: "", topicTag: "" })
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
+  const [expandedId, setExpandedId] = useState<string | null>(null)
 
   const rows = rounds.flatMap(r =>
     r.questions.map(q => ({
       id: q.id, roundId: r.id, question: q.question, topic: q.topicTag ?? "General",
       company: r.company, round: r.roundType, outcome: r.outcome, rating: q.rating,
-      whatISaid: q.whatISaid, aiRatingReason: q.aiRatingReason,
+      whatISaid: q.whatISaid, aiRatingReason: q.aiRatingReason, aiAnswer: q.aiAnswer,
     }))
   )
 
   function startEdit(row: typeof rows[0]) {
     setConfirmDeleteId(null)
+    setExpandedId(null)
     setEditingId(row.id)
     setEditForm({ question: row.question, topicTag: row.topic })
   }
@@ -970,128 +985,128 @@ function QuestionBank({ rounds, onPatchQuestion, onDeleteQuestion }: {
   )
 
   return (
-    <div className="rounded-xl border border-border bg-card overflow-hidden">
-      <table className="w-full text-sm text-left">
-        <thead>
-          <tr className="border-b border-border text-xs uppercase tracking-wide text-muted-foreground">
-            <th className="px-4 py-3 font-semibold">Question</th>
-            <th className="px-4 py-3 font-semibold">Topic</th>
-            <th className="px-4 py-3 font-semibold">Company</th>
-            <th className="px-4 py-3 font-semibold">Round</th>
-            <th className="px-4 py-3 font-semibold">Rating</th>
-            <th className="px-4 py-3 font-semibold w-20"></th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map(r => (
-            <tr key={r.id} className="border-b border-border/60 last:border-0 hover:bg-secondary/30 group">
-              {editingId === r.id ? (
-                <>
-                  <td className="px-4 py-2" colSpan={2}>
-                    <div className="flex flex-col gap-1.5">
-                      <input
-                        autoFocus
-                        value={editForm.question}
-                        onChange={e => setEditForm(f => ({ ...f, question: e.target.value }))}
-                        className="w-full rounded-lg border border-primary/50 bg-background px-3 py-1.5 text-sm text-foreground outline-none focus:ring-1 focus:ring-primary"
-                      />
-                      <select
-                        value={editForm.topicTag}
-                        onChange={e => setEditForm(f => ({ ...f, topicTag: e.target.value }))}
-                        className="w-fit rounded-lg border border-border bg-background px-2 py-1 text-xs text-foreground outline-none focus:ring-1 focus:ring-primary"
-                      >
-                        {TOPIC_TAGS.map(t => <option key={t}>{t}</option>)}
-                      </select>
-                    </div>
-                  </td>
-                  <td className="px-4 py-2 text-muted-foreground">{r.company}</td>
-                  <td className="px-4 py-2 text-muted-foreground">{r.round}</td>
-                  <td className="px-4 py-2">
-                    {r.rating != null ? (
-                      <span className={cn("rounded-full px-2 py-0.5 text-[10px] font-semibold", ratingBadge(r.rating))}>
-                        {r.rating}/10
-                      </span>
-                    ) : <span className="text-muted-foreground text-xs">—</span>}
-                  </td>
-                  <td className="px-4 py-2">
-                    <div className="flex items-center gap-1">
-                      <button onClick={() => saveEdit(r)}
-                        className="rounded-md bg-primary px-2.5 py-1 text-[11px] font-semibold text-primary-foreground hover:opacity-90">
-                        Save
-                      </button>
-                      <button onClick={() => setEditingId(null)}
-                        className="rounded-md border border-border px-2.5 py-1 text-[11px] text-muted-foreground hover:text-foreground">
-                        Cancel
-                      </button>
-                    </div>
-                  </td>
-                </>
-              ) : confirmDeleteId === r.id ? (
-                <>
-                  <td className="px-4 py-3" colSpan={5}>
-                    <div className="flex items-center gap-3">
-                      <AlertCircle className="size-4 text-red-400 shrink-0" />
-                      <p className="text-sm text-card-foreground flex-1 truncate">
-                        Delete <span className="font-medium">"{r.question.slice(0, 60)}{r.question.length > 60 ? "…" : ""}"</span>?
-                      </p>
-                    </div>
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-1">
-                      <button onClick={() => confirmDelete(r)}
-                        className="rounded-md bg-red-500/15 px-2.5 py-1 text-[11px] font-semibold text-red-400 hover:bg-red-500/25">
-                        Delete
-                      </button>
-                      <button onClick={() => setConfirmDeleteId(null)}
-                        className="rounded-md border border-border px-2.5 py-1 text-[11px] text-muted-foreground hover:text-foreground">
-                        Keep
-                      </button>
-                    </div>
-                  </td>
-                </>
-              ) : (
-                <>
-                  <td className="px-4 py-3 font-medium text-card-foreground max-w-xs">
-                    <p className="truncate">{r.question}</p>
-                    {r.whatISaid && (
-                      <p className="mt-0.5 text-[11px] text-muted-foreground truncate italic">Your answer: {r.whatISaid}</p>
-                    )}
-                    {r.aiRatingReason && (
-                      <p className="mt-0.5 text-[11px] text-muted-foreground truncate">{r.aiRatingReason}</p>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-muted-foreground">{r.topic}</td>
-                  <td className="px-4 py-3 text-muted-foreground">{r.company}</td>
-                  <td className="px-4 py-3 text-muted-foreground">{r.round}</td>
-                  <td className="px-4 py-3">
-                    {r.rating != null ? (
-                      <span className={cn("rounded-full px-2 py-0.5 text-[10px] font-semibold", ratingBadge(r.rating))}>
-                        {r.rating}/10
-                      </span>
-                    ) : <span className="text-muted-foreground text-xs">—</span>}
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button onClick={() => startEdit(r)}
-                        className="rounded-md p-1.5 text-muted-foreground hover:bg-secondary hover:text-foreground"
-                        title="Edit question">
-                        <svg className="size-3.5" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
-                          <path d="M11.5 2.5l2 2-9 9H2.5v-2l9-9z" />
-                        </svg>
-                      </button>
-                      <button onClick={() => { setEditingId(null); setConfirmDeleteId(r.id) }}
-                        className="rounded-md p-1.5 text-muted-foreground hover:bg-red-500/10 hover:text-red-400"
-                        title="Delete question">
-                        <Trash2 className="size-3.5" />
-                      </button>
-                    </div>
-                  </td>
-                </>
+    <div className="flex flex-col gap-2">
+      {rows.map(r => (
+        <div key={r.id} className={cn(
+          "rounded-xl border bg-card transition-colors",
+          expandedId === r.id ? "border-primary/40" : "border-border"
+        )}>
+          {/* Row header — always visible */}
+          <div
+            className="flex items-center gap-3 px-4 py-3 cursor-pointer select-none group"
+            onClick={() => {
+              if (editingId === r.id || confirmDeleteId === r.id) return
+              setExpandedId(e => e === r.id ? null : r.id)
+            }}
+          >
+            <ChevronRight className={cn("size-4 shrink-0 text-muted-foreground transition-transform", expandedId === r.id && "rotate-90")} />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-card-foreground">{r.question}</p>
+              <div className="flex flex-wrap items-center gap-2 mt-0.5">
+                <span className="text-[11px] text-muted-foreground">{r.company} · {r.round}</span>
+                <span className="rounded-full bg-secondary px-2 py-0.5 text-[10px] text-muted-foreground">{r.topic}</span>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              {r.rating != null && (
+                <span className={cn("rounded-full px-2 py-0.5 text-[10px] font-semibold", ratingBadge(r.rating))}>
+                  {r.rating}/10
+                </span>
               )}
-            </tr>
-          ))}
-        </tbody>
-      </table>
+              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                <button onClick={e => { e.stopPropagation(); startEdit(r) }}
+                  className="rounded-md p-1.5 text-muted-foreground hover:bg-secondary hover:text-foreground"
+                  title="Edit">
+                  <svg className="size-3.5" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
+                    <path d="M11.5 2.5l2 2-9 9H2.5v-2l9-9z" />
+                  </svg>
+                </button>
+                <button onClick={e => { e.stopPropagation(); setEditingId(null); setConfirmDeleteId(r.id) }}
+                  className="rounded-md p-1.5 text-muted-foreground hover:bg-red-500/10 hover:text-red-400"
+                  title="Delete">
+                  <Trash2 className="size-3.5" />
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Edit mode */}
+          {editingId === r.id && (
+            <div className="border-t border-border px-4 py-3 flex flex-col gap-2">
+              <input
+                autoFocus
+                value={editForm.question}
+                onChange={e => setEditForm(f => ({ ...f, question: e.target.value }))}
+                className="w-full rounded-lg border border-primary/50 bg-background px-3 py-1.5 text-sm text-foreground outline-none focus:ring-1 focus:ring-primary"
+              />
+              <div className="flex items-center gap-2">
+                <select value={editForm.topicTag} onChange={e => setEditForm(f => ({ ...f, topicTag: e.target.value }))}
+                  className="rounded-lg border border-border bg-background px-2 py-1 text-xs text-foreground outline-none">
+                  {TOPIC_TAGS.map(t => <option key={t}>{t}</option>)}
+                </select>
+                <div className="ml-auto flex gap-1">
+                  <button onClick={() => saveEdit(r)}
+                    className="rounded-md bg-primary px-2.5 py-1 text-[11px] font-semibold text-primary-foreground hover:opacity-90">Save</button>
+                  <button onClick={() => setEditingId(null)}
+                    className="rounded-md border border-border px-2.5 py-1 text-[11px] text-muted-foreground hover:text-foreground">Cancel</button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Delete confirm */}
+          {confirmDeleteId === r.id && (
+            <div className="border-t border-border px-4 py-3 flex items-center gap-3">
+              <AlertCircle className="size-4 text-red-400 shrink-0" />
+              <p className="text-sm text-card-foreground flex-1">Delete this question?</p>
+              <button onClick={() => confirmDelete(r)}
+                className="rounded-md bg-red-500/15 px-2.5 py-1 text-[11px] font-semibold text-red-400 hover:bg-red-500/25">Delete</button>
+              <button onClick={() => setConfirmDeleteId(null)}
+                className="rounded-md border border-border px-2.5 py-1 text-[11px] text-muted-foreground hover:text-foreground">Keep</button>
+            </div>
+          )}
+
+          {/* Expanded details */}
+          {expandedId === r.id && editingId !== r.id && confirmDeleteId !== r.id && (
+            <div className="border-t border-border px-4 py-4 flex flex-col gap-3">
+              {/* AI model answer */}
+              {r.aiAnswer && (
+                <div className="rounded-lg bg-primary/5 border border-primary/20 p-3">
+                  <div className="flex items-center gap-1.5 mb-1.5">
+                    <Sparkles className="size-3.5 text-primary" />
+                    <span className="text-xs font-semibold text-primary">AI Model Answer</span>
+                    <span className="text-[10px] text-muted-foreground">by Amazon Nova</span>
+                  </div>
+                  <p className="text-[13px] text-card-foreground leading-relaxed whitespace-pre-wrap">{r.aiAnswer}</p>
+                </div>
+              )}
+
+              {/* User's answer */}
+              {r.whatISaid && (
+                <div className="rounded-lg border border-border bg-background/60 p-3">
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground mb-1.5">Your Answer</p>
+                  <p className="text-[13px] text-card-foreground leading-relaxed whitespace-pre-wrap">{r.whatISaid}</p>
+                </div>
+              )}
+
+              {/* AI rating */}
+              {r.rating != null && r.aiRatingReason && (
+                <div className={cn("rounded-lg border p-3", ratingBadge(r.rating).includes("emerald") ? "bg-emerald-500/10 border-emerald-500/30" : r.rating >= 5 ? "bg-yellow-500/10 border-yellow-500/30" : "bg-red-500/10 border-red-500/30")}>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-xs font-semibold text-card-foreground">AI Rating</span>
+                    <RatingDots rating={r.rating} />
+                  </div>
+                  <p className="text-[13px] text-card-foreground leading-relaxed">{r.aiRatingReason}</p>
+                </div>
+              )}
+
+              {!r.aiAnswer && !r.whatISaid && !r.aiRatingReason && (
+                <p className="text-xs text-muted-foreground italic">No answers logged yet. Open the round above to practice this question.</p>
+              )}
+            </div>
+          )}
+        </div>
+      ))}
     </div>
   )
 }
