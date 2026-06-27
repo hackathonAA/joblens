@@ -68,12 +68,20 @@ export function WarRoom() {
     Promise.all([
       fetch("/api/offers").then(r => r.json()),
       fetch("/api/applications").then(r => r.json()),
-    ]).then(([offersData, appsData]) => {
+      fetch("/api/columns").then(r => r.json()),
+    ]).then(([offersData, appsData, colsData]) => {
       if (Array.isArray(offersData)) setOffers(offersData.map((o, i) => dbOfferToOffer(o, i)))
-      if (Array.isArray(appsData)) setApplications(appsData.map((a: any) => ({
-        id: a.id, company: a.company, role: a.role,
-        salaryMin: a.salaryMin, salaryMax: a.salaryMax, status: a.status
-      })))
+      if (Array.isArray(appsData) && Array.isArray(colsData)) {
+        // Only show apps that are past the default (Applied) column and not rejected
+        const excludeKeys = new Set<string>([
+          ...colsData.filter((c: any) => c.isDefault || c.isRejected).map((c: any) => c.columnKey)
+        ])
+        const filtered = appsData.filter((a: any) => !excludeKeys.has(a.status ?? ""))
+        setApplications(filtered.map((a: any) => ({
+          id: a.id, company: a.company, role: a.role,
+          salaryMin: a.salaryMin, salaryMax: a.salaryMax, status: a.status
+        })))
+      }
     }).finally(() => setLoading(false))
   }, [])
 
@@ -85,7 +93,11 @@ export function WarRoom() {
       const res = await fetch("/api/war-room-insights", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ offers: currentOffers }),
+        body: JSON.stringify({
+          offers: currentOffers,
+          currency: currency.symbol,
+          currencyCode: currency.code,
+        }),
       })
       const data = await res.json()
       if (data.recommendation) setAiInsights(data)
