@@ -1,18 +1,20 @@
-import { NextRequest, NextResponse } from "next/server"
-import { getToken } from "next-auth/jwt"
+import { withAuth } from "next-auth/middleware"
+import { NextResponse } from "next/server"
 
-export async function middleware(req: NextRequest) {
-  const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET })
-  const isLoginPage = req.nextUrl.pathname.startsWith("/login")
-  const isApiAuth = req.nextUrl.pathname.startsWith("/api/auth")
-
-  if (!token && !isLoginPage && !isApiAuth) {
-    return NextResponse.redirect(new URL("/login", req.url))
+export default withAuth(
+  function middleware() {
+    return NextResponse.next()
+  },
+  {
+    callbacks: {
+      authorized: ({ token }) => !!token,
+    },
+    pages: {
+      signIn: "/login",
+    },
   }
-
-  return NextResponse.next()
-}
+)
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\.png$|.*\\.svg$).*)"],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|login|api/auth|.*\\.png$|.*\\.svg$).*)"],
 }
