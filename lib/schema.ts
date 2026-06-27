@@ -31,6 +31,8 @@ export const applications = pgTable("applications", {
   jobUrl: text("job_url"),
   jobDescription: text("job_description"),
   notes: text("notes"),
+  isArchived: boolean("is_archived").notNull().default(false),
+  archivedAt: timestamp("archived_at", { withTimezone: true }),
   appliedAt: timestamp("applied_at", { withTimezone: true }).defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
 })

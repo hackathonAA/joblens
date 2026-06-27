@@ -28,6 +28,10 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   if (body.salaryMax !== undefined) allowed.salaryMax = body.salaryMax
   if (body.location !== undefined) allowed.location = body.location
   if (body.jobUrl !== undefined) allowed.jobUrl = body.jobUrl
+  if (body.isArchived !== undefined) {
+    allowed.isArchived = body.isArchived
+    allowed.archivedAt = body.isArchived ? new Date() : null
+  }
 
   const [row] = await db.update(applications)
     .set(allowed)

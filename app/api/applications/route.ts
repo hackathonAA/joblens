@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth"
 import { authOptions } from "@/app/api/auth/[...nextauth]/route"
 import { db } from "@/lib/db"
 import { applications, users } from "@/lib/schema"
-import { eq } from "drizzle-orm"
+import { eq, and } from "drizzle-orm"
 import { getUserColumns } from "@/lib/column-defaults"
 
 async function getUser(session: any) {
@@ -17,7 +17,9 @@ export async function GET(req: NextRequest) {
   const user = await getUser(session)
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
-  let rows = await db.select().from(applications).where(eq(applications.userId, user.id))
+  // Always exclude archived unless explicitly requested
+  let rows = await db.select().from(applications)
+    .where(and(eq(applications.userId, user.id), eq(applications.isArchived, false)))
 
   const excludeRejected = req.nextUrl.searchParams.get("excludeRejected") === "true"
   if (excludeRejected) {
