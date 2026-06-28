@@ -52,7 +52,7 @@ function StageSection({
   const { setNodeRef, isOver } = useDroppable({ id: column.columnKey })
 
   return (
-    <section className="border-b border-border last:border-0">
+    <section className="border-b border-border last:border-0 shadow-[0_1px_0_0_oklch(1_0_0/6%),0_4px_12px_0_oklch(0_0_0/40%)]">
       {/* Stage header */}
       <div className={cn(
         "flex items-center justify-between px-8 py-3 border-l-2",
@@ -96,9 +96,9 @@ function StageSection({
       <div
         ref={setNodeRef}
         className={cn(
-          "grid gap-2 px-8 py-5 transition-colors",
+          "grid gap-2 px-8 py-5 transition-colors bg-[oklch(0.085_0_0)]",
           "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4",
-          isOver && (column.isRejected ? "bg-destructive/5" : "bg-[oklch(0.72_0.17_145)]/5"),
+          isOver && (column.isRejected ? "!bg-destructive/5" : "!bg-[oklch(0.72_0.17_145)]/5"),
         )}
       >
         {cards.length === 0 ? (
@@ -265,7 +265,7 @@ export function KanbanBoard() {
           <PageLoader />
         ) : (
           columns.map(column => (
-            <div id={`stage-${column.columnKey}`} key={column.columnKey}>
+            <div id={`stage-${column.columnKey}`} key={column.columnKey} style={{ scrollMarginTop: "96px" }}>
               <StageSection
                 column={column}
                 cards={cards.filter(c => c.columnId === column.columnKey)}
