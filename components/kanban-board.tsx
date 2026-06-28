@@ -86,7 +86,7 @@ function StageSection({
         </div>
         <button
           onClick={onAdd}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-medium text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors border border-dashed border-border hover:border-primary/60"
+          className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-medium uppercase tracking-wide text-primary border border-primary/40 hover:bg-primary/10 hover:border-primary transition-colors"
         >
           <Plus className="size-3" /> ADD
         </button>
