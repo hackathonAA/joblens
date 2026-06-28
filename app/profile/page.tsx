@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { Loader2, Save, User, MapPin, Briefcase, Link2, ExternalLink } from "lucide-react"
+import { PageLoader } from "@/components/page-loader"
 import { useCurrency } from "@/lib/currency-context"
 
 type Profile = {
@@ -88,12 +89,12 @@ export default function ProfilePage() {
     <div className="overflow-y-auto h-full">
     <div className="px-8 py-7">
       <div className="mb-6">
-        <h1 className="text-xl font-bold tracking-tight text-foreground">Profile</h1>
-        <p className="mt-0.5 text-sm text-muted-foreground">Your job search identity and preferences.</p>
+        <h1 className="text-sm font-bold tracking-widest uppercase text-foreground">// PROFILE</h1>
+        <p className="mt-0.5 text-xs text-muted-foreground">identity + job search preferences</p>
       </div>
       <div className="mx-auto max-w-2xl">
         <div className="mb-6 flex items-center gap-4">
-          <div className="flex size-14 items-center justify-center rounded-full bg-primary/15 text-lg font-bold text-primary">
+          <div className="flex size-14 items-center justify-center border border-primary/40 bg-primary/10 text-lg font-bold text-primary">
             {initials}
           </div>
           <div>
@@ -103,7 +104,7 @@ export default function ProfilePage() {
         </div>
 
         {loading ? (
-          <p className="text-sm text-muted-foreground">Loading…</p>
+          <PageLoader />
         ) : (
           <form onSubmit={handleSave} className="flex flex-col gap-6">
             {/* Basic info */}

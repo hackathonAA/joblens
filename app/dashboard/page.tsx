@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from "react"
 import { usePathname } from "next/navigation"
 import { RefreshCw, AlertCircle, Mail, Loader2, CheckCircle, TrendingDown } from "lucide-react"
+import { PageLoader } from "@/components/page-loader"
 import { ApplicationsBarChart, ResponseRateLineChart } from "@/components/dashboard-charts"
 import { ApplicationFunnel } from "@/components/application-funnel"
 import { InsightCard } from "@/components/insight-card"
@@ -164,22 +165,22 @@ export default function DashboardPage() {
     <div className="px-8 py-7">
       <div className="mb-6 flex items-end justify-between">
         <div>
-          <h1 className="text-xl font-bold tracking-tight text-foreground">Dashboard</h1>
-          <p className="mt-0.5 text-sm text-muted-foreground">Search velocity — your job hunt, measured.</p>
+          <h1 className="text-sm font-bold tracking-widest uppercase text-foreground">// DASHBOARD</h1>
+          <p className="mt-0.5 text-xs text-muted-foreground">search velocity — your hunt, measured</p>
         </div>
         <button
           onClick={() => fetchData(true)}
           disabled={refreshing || loading}
-          className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground disabled:opacity-40"
+          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground disabled:opacity-40 border border-border"
         >
           <RefreshCw className={`size-3.5 ${refreshing ? "animate-spin" : ""}`} />
-          {refreshing ? "Refreshing…" : "Refresh"}
+          {refreshing ? "REFRESHING..." : "REFRESH"}
         </button>
       </div>
 
       <div className="mx-auto flex max-w-6xl flex-col gap-4">
         {loading ? (
-          <p className="text-sm text-muted-foreground py-8">Loading dashboard…</p>
+          <PageLoader />
         ) : data ? (
           <>
             <StatCards stats={data.stats} healthScore={data.healthScore} />

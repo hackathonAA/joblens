@@ -55,44 +55,45 @@ export function OutreachModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={e => { if (e.target === e.currentTarget) onClose() }}>
-      <div className="w-full max-w-lg rounded-2xl border border-border bg-card shadow-2xl flex flex-col max-h-[85vh]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" onClick={e => { if (e.target === e.currentTarget) onClose() }}>
+      <div className="w-full max-w-lg border border-border bg-card shadow-2xl shadow-black/60 flex flex-col max-h-[85vh]">
         {/* Header */}
-        <div className="flex items-start justify-between gap-3 px-5 pt-5 pb-4 border-b border-border">
+        <div className="flex items-start justify-between gap-3 px-5 pt-4 pb-3 border-b border-border">
           <div>
-            <h2 className="text-base font-bold text-card-foreground">Cold Outreach</h2>
-            <p className="mt-0.5 text-xs text-muted-foreground">{company} — {role}</p>
+            <h2 className="text-xs font-bold tracking-widest uppercase text-foreground">// COLD OUTREACH</h2>
+            <p className="mt-0.5 text-[10px] text-muted-foreground">{company} — {role}</p>
           </div>
-          <button onClick={onClose} className="rounded-md p-1.5 text-muted-foreground hover:bg-secondary hover:text-foreground">
+          <button onClick={onClose} className="p-1 text-muted-foreground hover:text-foreground">
             <X className="size-4" />
           </button>
         </div>
 
         {/* Tabs */}
-        <div className="flex items-center gap-1 px-5 pt-4 pb-0">
-          <div className="flex items-center gap-1 rounded-lg border border-border bg-background/60 p-1">
+        <div className="flex items-center gap-3 px-5 pt-3 pb-0">
+          <div className="flex items-center border border-border">
             <button onClick={() => setTab("email")}
-              className={cn("flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
-                tab === "email" ? "bg-secondary text-secondary-foreground" : "text-muted-foreground hover:text-foreground"
+              className={cn("flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-medium uppercase tracking-wide transition-colors",
+                tab === "email" ? "bg-secondary text-foreground" : "text-muted-foreground hover:text-foreground"
               )}>
-              <Mail className="size-3.5" /> Cold Email
+              <Mail className="size-3" /> Email
             </button>
+            <div className="w-px h-full bg-border" />
             <button onClick={() => setTab("dm")}
-              className={cn("flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
-                tab === "dm" ? "bg-secondary text-secondary-foreground" : "text-muted-foreground hover:text-foreground"
+              className={cn("flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-medium uppercase tracking-wide transition-colors",
+                tab === "dm" ? "bg-secondary text-foreground" : "text-muted-foreground hover:text-foreground"
               )}>
-              <MessageSquare className="size-3.5" /> LinkedIn DM
+              <MessageSquare className="size-3" /> LinkedIn DM
             </button>
           </div>
-          <div className="ml-auto flex items-center gap-1">
+          <div className="ml-auto flex items-center gap-1.5">
             <button onClick={generate} disabled={loading}
-              className="flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-xs text-muted-foreground hover:text-foreground disabled:opacity-50">
-              {loading ? <Loader2 className="size-3.5 animate-spin" /> : <RotateCcw className="size-3.5" />}
-              Regenerate
+              className="flex items-center gap-1.5 border border-border px-2.5 py-1.5 text-[10px] uppercase tracking-wide text-muted-foreground hover:text-foreground disabled:opacity-50">
+              {loading ? <Loader2 className="size-3 animate-spin" /> : <RotateCcw className="size-3" />}
+              Regen
             </button>
             <button onClick={copyText} disabled={!result || loading}
-              className="flex items-center gap-1.5 rounded-lg bg-primary px-2.5 py-1.5 text-xs font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-50">
-              {copied ? <CheckCircle className="size-3.5" /> : <Copy className="size-3.5" />}
+              className="flex items-center gap-1.5 bg-primary px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-wide text-primary-foreground hover:opacity-90 disabled:opacity-50">
+              {copied ? <CheckCircle className="size-3" /> : <Copy className="size-3" />}
               {copied ? "Copied!" : "Copy"}
             </button>
           </div>
@@ -102,41 +103,41 @@ export function OutreachModal({
         <div className="flex-1 overflow-y-auto px-5 py-4">
           {loading && (
             <div className="flex flex-col items-center justify-center py-16 gap-3">
-              <Loader2 className="size-6 animate-spin text-primary" />
-              <p className="text-sm text-muted-foreground">Amazon Nova is drafting your message…</p>
+              <Loader2 className="size-5 animate-spin text-primary" />
+              <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Amazon Nova drafting…</p>
             </div>
           )}
 
           {!loading && result && tab === "email" && (
             <div className="flex flex-col gap-3">
-              <div className="rounded-xl border border-border bg-background/60 px-4 py-3">
-                <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground mb-1">Subject</p>
-                <p className="text-sm font-medium text-card-foreground">{result.email.subject}</p>
+              <div className="border border-border bg-background px-4 py-3">
+                <p className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground mb-1">Subject</p>
+                <p className="text-xs font-medium text-foreground">{result.email.subject}</p>
               </div>
-              <div className="rounded-xl border border-border bg-background/60 px-4 py-3">
-                <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground mb-2">Body</p>
-                <p className="text-[13px] text-card-foreground leading-relaxed whitespace-pre-wrap">{result.email.body}</p>
+              <div className="border border-border bg-background px-4 py-3">
+                <p className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground mb-2">Body</p>
+                <p className="text-xs text-foreground leading-relaxed whitespace-pre-wrap">{result.email.body}</p>
               </div>
             </div>
           )}
 
           {!loading && result && tab === "dm" && (
-            <div className="rounded-xl border border-border bg-background/60 px-4 py-3">
-              <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground mb-2">LinkedIn DM</p>
-              <p className="text-[13px] text-card-foreground leading-relaxed whitespace-pre-wrap">{result.dm}</p>
+            <div className="border border-border bg-background px-4 py-3">
+              <p className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground mb-2">LinkedIn DM</p>
+              <p className="text-xs text-foreground leading-relaxed whitespace-pre-wrap">{result.dm}</p>
             </div>
           )}
 
           {!loading && !result && (
             <div className="flex flex-col items-center justify-center py-16 text-center">
-              <p className="text-sm text-muted-foreground">Failed to generate. Try again.</p>
-              <button onClick={generate} className="mt-3 text-xs text-primary hover:opacity-80">Retry</button>
+              <p className="text-xs text-muted-foreground">Failed to generate.</p>
+              <button onClick={generate} className="mt-3 text-[10px] uppercase tracking-wide text-primary hover:opacity-80">Retry</button>
             </div>
           )}
         </div>
 
-        <div className="px-5 pb-4 pt-2 border-t border-border">
-          <p className="text-[10px] text-muted-foreground">Powered by Amazon Nova · Review before sending</p>
+        <div className="px-5 pb-3 pt-2 border-t border-border">
+          <p className="text-[9px] uppercase tracking-widest text-muted-foreground/50">Powered by Amazon Nova · Review before sending</p>
         </div>
       </div>
     </div>

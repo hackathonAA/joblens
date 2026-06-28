@@ -72,23 +72,23 @@ function UserSection() {
     <div ref={ref} className="relative">
       <button
         onClick={() => setOpen(v => !v)}
-        className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm transition-colors hover:bg-sidebar-accent"
+        className="flex w-full items-center gap-2.5 px-3 py-2.5 text-xs transition-colors hover:bg-sidebar-accent border-l-2 border-transparent hover:border-muted-foreground"
       >
-        <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary/20 text-[11px] font-bold text-primary">
+        <span className="flex size-6 shrink-0 items-center justify-center border border-primary/40 text-[10px] font-bold text-primary bg-primary/10">
           {initials}
         </span>
-        <span className="min-w-0 flex-1 truncate text-left text-sm font-medium text-sidebar-foreground">
+        <span className="min-w-0 flex-1 truncate text-left text-xs font-medium text-sidebar-foreground">
           {display}
         </span>
-        <ChevronDown className={cn("size-3.5 shrink-0 text-muted-foreground transition-transform", open && "rotate-180")} />
+        <ChevronDown className={cn("size-3 shrink-0 text-muted-foreground transition-transform", open && "rotate-180")} />
       </button>
 
       {open && (
-        <div className="absolute bottom-full left-0 right-0 mb-1 rounded-xl border border-sidebar-border bg-popover shadow-xl shadow-black/40">
+        <div className="absolute bottom-full left-0 right-0 mb-0 border border-sidebar-border bg-popover shadow-xl shadow-black/60">
           <Link
             href="/profile"
             onClick={() => setOpen(false)}
-            className="flex items-center gap-2.5 px-3 py-2.5 text-sm text-popover-foreground transition-colors hover:bg-accent rounded-t-xl"
+            className="flex items-center gap-2.5 px-3 py-2.5 text-xs text-popover-foreground transition-colors hover:bg-accent hover:text-primary"
           >
             <User className="size-3.5 text-muted-foreground" />
             View Profile
@@ -96,7 +96,7 @@ function UserSection() {
           <div className="border-t border-border" />
           <button
             onClick={handleSignOut}
-            className="flex w-full items-center gap-2.5 px-3 py-2.5 text-sm text-destructive transition-colors hover:bg-accent rounded-b-xl"
+            className="flex w-full items-center gap-2.5 px-3 py-2.5 text-xs text-destructive transition-colors hover:bg-accent"
           >
             <LogOut className="size-3.5" />
             Sign out
@@ -114,19 +114,18 @@ export function AppSidebar() {
   return (
     <aside className="flex h-svh w-[220px] shrink-0 flex-col border-r border-sidebar-border bg-sidebar">
       {/* Brand */}
-      <div className="flex items-center gap-2.5 px-5 py-5 border-b border-sidebar-border">
-        {/* Minimal mark: a coral square with a cutout */}
-        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
-          <rect width="20" height="20" rx="4" fill="oklch(0.65 0.20 15)" />
-          <rect x="5" y="5" width="6" height="6" rx="1" fill="oklch(0.10 0.008 25)" />
-          <rect x="13" y="11" width="2" height="4" rx="0.5" fill="oklch(0.10 0.008 25)" />
+      <div className="flex items-center gap-3 px-5 py-5 border-b border-sidebar-border">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+          <rect width="18" height="18" fill="oklch(0.78 0.17 85)" />
+          <rect x="4" y="4" width="5" height="5" fill="oklch(0.06 0 0)" />
+          <rect x="11" y="10" width="3" height="4" fill="oklch(0.06 0 0)" />
         </svg>
-        <span className="text-sm font-bold tracking-tight text-sidebar-foreground">JobLens</span>
+        <span className="text-sm font-bold tracking-widest uppercase text-sidebar-foreground">JobLens</span>
       </div>
 
       {/* Nav */}
-      <nav className="flex flex-1 flex-col gap-0.5 px-3 py-4" aria-label="Main navigation">
-        <p className="label-caps mb-2 px-2 text-muted-foreground">Workspace</p>
+      <nav className="flex flex-1 flex-col gap-px px-0 py-3" aria-label="Main navigation">
+        <p className="label-caps mb-2 px-5 text-muted-foreground">// workspace</p>
         {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
           const active = pathname === href
           return (
@@ -134,20 +133,13 @@ export function AppSidebar() {
               key={href}
               href={href}
               className={cn(
-                "group relative flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                "group relative flex items-center gap-2.5 px-5 py-2 text-xs font-medium tracking-wide transition-colors border-l-2",
                 active
-                  ? "bg-sidebar-accent text-sidebar-foreground"
-                  : "text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground",
+                  ? "border-primary bg-sidebar-accent text-primary"
+                  : "border-transparent text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground hover:border-muted-foreground",
               )}
             >
-              {/* active indicator bar */}
-              {active && (
-                <span
-                  className="absolute left-0 top-1/2 h-4 w-0.5 -translate-y-1/2 rounded-full bg-primary"
-                  aria-hidden="true"
-                />
-              )}
-              <Icon className={cn("size-4 shrink-0", active ? "text-primary" : "text-muted-foreground group-hover:text-sidebar-foreground")} />
+              <Icon className={cn("size-3.5 shrink-0", active ? "text-primary" : "text-muted-foreground group-hover:text-sidebar-foreground")} />
               {label}
             </Link>
           )
@@ -157,11 +149,11 @@ export function AppSidebar() {
       {/* Footer: currency + user */}
       <div className="border-t border-sidebar-border px-3 py-3 flex flex-col gap-1">
         <div className="flex items-center justify-between px-3 py-1.5">
-          <span className="label-caps text-muted-foreground">Currency</span>
+          <span className="label-caps text-muted-foreground">CCY</span>
           <select
             value={currency.code}
             onChange={e => { const c = CURRENCIES.find(c => c.code === e.target.value); if (c) setCurrency(c) }}
-            className="rounded border border-border bg-transparent py-0.5 pl-1 pr-5 text-xs font-medium text-muted-foreground outline-none hover:text-foreground focus:ring-1 focus:ring-primary cursor-pointer"
+            className="border border-border bg-transparent py-0.5 pl-1 pr-5 text-xs font-medium text-muted-foreground outline-none hover:text-foreground focus:ring-1 focus:ring-primary cursor-pointer"
             title="Currency"
           >
             {CURRENCIES.map(c => (

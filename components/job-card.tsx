@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { useDraggable } from "@dnd-kit/core"
 import { CSS } from "@dnd-kit/utilities"
-import { Clock, MapPin, ExternalLink, ChevronDown, Pencil, Check, X } from "lucide-react"
+import { Clock, MapPin, ExternalLink, ChevronDown, Pencil, Check, X, Mail, Sparkles } from "lucide-react"
 import {
   type JobCard as JobCardType,
   daysSince,
@@ -11,6 +11,8 @@ import {
 } from "@/lib/kanban-data"
 import { cn } from "@/lib/utils"
 import { useCurrency } from "@/lib/currency-context"
+import { OutreachModal } from "@/components/outreach-modal"
+import Link from "next/link"
 
 function fitColor(score: number) {
   if (score >= 75) return "text-[oklch(0.70_0.14_162)] bg-[oklch(0.70_0.14_162)]/10"
@@ -43,6 +45,7 @@ export function JobCard({
   const { currency } = useCurrency()
   const [expanded, setExpanded] = useState(false)
   const [editing, setEditing] = useState(false)
+  const [outreach, setOutreach] = useState(false)
   const [draft, setDraft] = useState({
     company: card.company,
     role: card.role,
@@ -88,16 +91,25 @@ export function JobCard({
   }
 
   return (
+    <>
+      {outreach && !overlay && (
+        <OutreachModal
+          applicationId={card.id}
+          company={card.company}
+          role={card.role}
+          onClose={() => setOutreach(false)}
+        />
+      )}
     <div
       ref={setNodeRef}
       style={style}
       className={cn(
-        "group relative rounded-xl border border-border bg-card transition-all",
-        "hover:border-border/60 hover:shadow-md hover:shadow-black/30",
-        "before:absolute before:inset-x-0 before:top-0 before:h-px before:rounded-t-xl before:bg-primary before:opacity-0 before:transition-opacity",
+        "group relative border border-border bg-card transition-all",
+        "hover:border-primary/50",
+        "before:absolute before:inset-y-0 before:left-0 before:w-px before:bg-primary before:opacity-0 before:transition-opacity",
         "hover:before:opacity-100",
-        isDragging && "opacity-30",
-        overlay && "cursor-grabbing rotate-1 shadow-2xl shadow-black/50 ring-1 ring-primary/30",
+        isDragging && "opacity-20",
+        overlay && "cursor-grabbing shadow-2xl shadow-black/70 ring-1 ring-primary/40",
       )}
     >
       {/* Drag handle — top section */}
@@ -218,8 +230,26 @@ export function JobCard({
           {!card.notes && !card.jobUrl && (
             <p className="text-[11px] text-muted-foreground/50 italic">No details yet. Click the edit button to add notes.</p>
           )}
+          {/* Action buttons */}
+          <div className="flex flex-wrap gap-1.5 pt-1 border-t border-border/40">
+            <button
+              type="button"
+              onClick={e => { e.stopPropagation(); setOutreach(true) }}
+              className="inline-flex items-center gap-1.5 border border-border px-2.5 py-1.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground hover:border-primary/50 hover:text-primary transition-colors"
+            >
+              <Mail className="size-3" /> Cold Outreach
+            </button>
+            <Link
+              href={`/jd-analyzer?appId=${card.id}`}
+              onClick={e => e.stopPropagation()}
+              className="inline-flex items-center gap-1.5 border border-border px-2.5 py-1.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground hover:border-primary/50 hover:text-primary transition-colors"
+            >
+              <Sparkles className="size-3" /> {card.fitScore != null ? `Fit: ${card.fitScore}%` : "Analyze JD"}
+            </Link>
+          </div>
         </div>
       )}
     </div>
+    </>
   )
 }

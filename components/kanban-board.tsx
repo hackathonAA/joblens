@@ -16,6 +16,7 @@ import { Settings, Plus } from "lucide-react"
 import { JobCard } from "@/components/job-card"
 import { AddCardModal } from "@/components/add-card-modal"
 import { ColumnEditorModal } from "@/components/column-editor-modal"
+import { PageLoader } from "@/components/page-loader"
 import { useColumns } from "@/lib/columns-context"
 import { cn } from "@/lib/utils"
 import type { JobCard as JobCardType } from "@/lib/kanban-data"
@@ -51,36 +52,43 @@ function StageSection({
   const { setNodeRef, isOver } = useDroppable({ id: column.columnKey })
 
   return (
-    <section className="py-8 border-b border-border/40 last:border-0">
+    <section className="border-b border-border last:border-0">
       {/* Stage header */}
-      <div className="flex items-center justify-between mb-5 px-8">
+      <div className={cn(
+        "flex items-center justify-between px-8 py-3 border-l-2",
+        column.isRejected
+          ? "border-l-destructive/60 bg-destructive/3"
+          : column.isOfferStage
+            ? "border-l-[oklch(0.72_0.17_145)] bg-[oklch(0.72_0.17_145)]/3"
+            : "border-l-primary/50 bg-primary/2"
+      )}>
         <div className="flex items-center gap-3">
-          <h2 className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+          <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
             {column.title}
-          </h2>
+          </span>
           <span className={cn(
-            "font-num text-xs font-bold rounded-full px-2 py-0.5",
+            "font-num text-[10px] font-bold px-1.5 py-0.5 border",
             cards.length > 0
               ? column.isRejected
-                ? "bg-destructive/10 text-destructive/70"
+                ? "border-destructive/40 text-destructive/70 bg-destructive/5"
                 : column.isOfferStage
-                  ? "bg-[oklch(0.70_0.14_162)]/10 text-[oklch(0.70_0.14_162)]"
-                  : "bg-primary/10 text-primary"
-              : "bg-secondary text-muted-foreground/50"
+                  ? "border-[oklch(0.72_0.17_145)]/40 text-[oklch(0.72_0.17_145)] bg-[oklch(0.72_0.17_145)]/5"
+                  : "border-primary/40 text-primary bg-primary/5"
+              : "border-border text-muted-foreground/40 bg-transparent"
           )}>
             {cards.length}
           </span>
           {column.isOfferStage && cards.length > 0 && (
-            <span className="text-[10px] font-medium text-[oklch(0.70_0.14_162)] uppercase tracking-wide">
-              · offer stage
+            <span className="text-[9px] font-bold text-[oklch(0.72_0.17_145)] uppercase tracking-widest">
+              ▲ OFFER
             </span>
           )}
         </div>
         <button
           onClick={onAdd}
-          className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors border border-dashed border-border/50 hover:border-primary/40"
+          className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-medium text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors border border-dashed border-border hover:border-primary/60"
         >
-          <Plus className="size-3" /> Add
+          <Plus className="size-3" /> ADD
         </button>
       </div>
 
@@ -88,17 +96,21 @@ function StageSection({
       <div
         ref={setNodeRef}
         className={cn(
-          "grid gap-3 px-8 transition-colors",
+          "grid gap-2 px-8 py-5 transition-colors",
           "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4",
-          isOver && "bg-primary/3 rounded-xl",
+          isOver && (column.isRejected ? "bg-destructive/5" : "bg-[oklch(0.72_0.17_145)]/5"),
         )}
       >
         {cards.length === 0 ? (
           <div className={cn(
-            "col-span-full flex items-center justify-center rounded-xl border border-dashed py-8 transition-colors",
-            isOver ? "border-primary/40 bg-primary/5" : "border-border/30",
+            "col-span-full flex items-center justify-center border border-dashed py-6 transition-colors",
+            isOver
+              ? column.isRejected
+                ? "border-destructive/40 bg-destructive/5"
+                : "border-[oklch(0.72_0.17_145)]/40 bg-[oklch(0.72_0.17_145)]/5"
+              : "border-border/40",
           )}>
-            <p className="text-xs text-muted-foreground/50">drop here or add above</p>
+            <p className="text-[10px] text-muted-foreground/40 tracking-widest uppercase">drop here · or add above</p>
           </div>
         ) : (
           cards.map(card => (
@@ -207,39 +219,39 @@ export function KanbanBoard() {
       )}
       {showEditor && <ColumnEditorModal onClose={() => setShowEditor(false)} />}
 
-      {/* Page header */}
-      <div className="flex items-center justify-between px-8 pt-8 pb-2">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">Tracker</h1>
-          <p className="mt-0.5 text-sm text-muted-foreground">Your pipeline at a glance.</p>
+      {/* Sticky header + pipeline strip */}
+      <div className="sticky top-0 z-20 bg-background border-b border-border">
+        <div className="flex items-center justify-between px-8 pt-5 pb-3">
+          <div>
+            <h1 className="text-sm font-bold tracking-widest uppercase text-foreground">// TRACKER</h1>
+            <p className="mt-0.5 text-xs text-muted-foreground">pipeline · {cards.length} applications</p>
+          </div>
+          <button
+            onClick={() => setShowEditor(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground border border-border"
+          >
+            <Settings className="size-3.5" /> COLUMNS
+          </button>
         </div>
-        <button
-          onClick={() => setShowEditor(true)}
-          className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
-        >
-          <Settings className="size-3.5" /> Columns
-        </button>
+
+        {/* Pipeline summary strip */}
+        {!loading && (
+          <div className="flex flex-wrap items-stretch border-t border-border">
+            {columns.map((col) => {
+              const count = cards.filter(c => c.columnId === col.columnKey).length
+              return (
+                <a key={col.columnKey} href={`#stage-${col.columnKey}`} className="group flex flex-col items-center gap-0.5 px-4 py-2 hover:bg-secondary transition-colors min-w-[72px] border-r border-border last:border-r-0">
+                  <span className={cn(
+                    "font-num text-base font-bold leading-none",
+                    count > 0 ? "text-primary" : "text-muted-foreground/30"
+                  )}>{count}</span>
+                  <span className="text-[9px] uppercase tracking-widest text-muted-foreground/60 text-center leading-tight">{col.title}</span>
+                </a>
+              )
+            })}
+          </div>
+        )}
       </div>
-
-      {/* Pipeline summary strip */}
-      {!loading && (
-        <div className="flex items-stretch gap-0 px-8 py-4 overflow-x-auto">
-          {columns.map((col, i) => {
-            const count = cards.filter(c => c.columnId === col.columnKey).length
-            return (
-              <a key={col.columnKey} href={`#stage-${col.columnKey}`} className="group flex flex-col items-center gap-1 px-4 py-2 rounded-lg hover:bg-secondary/50 transition-colors min-w-[80px]">
-                <span className={cn(
-                  "font-num text-lg font-bold leading-none",
-                  count > 0 ? "text-foreground" : "text-muted-foreground/30"
-                )}>{count}</span>
-                <span className="text-[10px] uppercase tracking-wide text-muted-foreground/60 text-center leading-tight">{col.title}</span>
-              </a>
-            )
-          })}
-        </div>
-      )}
-
-      <div className="h-px bg-border/30 mx-8" />
 
       {/* Stages */}
       <DndContext
@@ -250,7 +262,7 @@ export function KanbanBoard() {
         onDragEnd={handleDragEnd}
       >
         {loading ? (
-          <p className="text-sm text-muted-foreground px-8 py-12">Loading…</p>
+          <PageLoader />
         ) : (
           columns.map(column => (
             <div id={`stage-${column.columnKey}`} key={column.columnKey}>

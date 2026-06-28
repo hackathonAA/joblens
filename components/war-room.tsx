@@ -12,6 +12,7 @@ import {
 } from "@/lib/war-room-data"
 import { cn } from "@/lib/utils"
 import { useCurrency } from "@/lib/currency-context"
+import { PageLoader } from "@/components/page-loader"
 
 type RowKind = "higher" | "lower" | "none"
 type Row = { key: string; label: string; value: (o: Offer) => number | null; render: (o: Offer, editing?: boolean, onChange?: (v: string) => void) => React.ReactNode; better: RowKind }
@@ -223,7 +224,7 @@ export function WarRoom() {
     setSaving(false)
   }
 
-  if (loading) return <p className="text-sm text-muted-foreground px-8 py-12">Loading offers…</p>
+  if (loading) return <PageLoader />
 
   const existingOfferAppIds = new Set(offers.map(o => o._raw.applicationId))
   const availableApps = applications.filter(a => !existingOfferAppIds.has(a.id))

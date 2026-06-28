@@ -7,6 +7,7 @@ import {
 } from "lucide-react"
 import { OUTCOME_CONFIG } from "@/lib/interview-data"
 import { cn } from "@/lib/utils"
+import { PageLoader } from "@/components/page-loader"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -170,7 +171,7 @@ export function InterviewLogger() {
     if (selectedRoundId === id) setSelectedRoundId(null)
   }
 
-  if (loading) return <p className="text-sm text-muted-foreground py-8">Loading interviews…</p>
+  if (loading) return <PageLoader />
 
   if (apps.length === 0) return (
     <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border py-20 text-center">
