@@ -17,6 +17,7 @@ export const authOptions: NextAuthOptions = {
         params: {
           scope: "openid email phone",
           response_type: "code",
+          redirect_uri: `${process.env.NEXTAUTH_URL}/api/auth/callback/cognito`,
         },
       },
       token: `https://${process.env.COGNITO_DOMAIN}.auth.${process.env.COGNITO_REGION}.amazoncognito.com/oauth2/token`,
