@@ -254,6 +254,68 @@ export function WarRoom() {
   return (
     <div className="flex flex-col gap-6">
 
+      {/* Add offer button / form — top of page */}
+      {liveOffers.length < 3 && !showForm && (
+        <div className="flex items-center justify-between">
+          <Button type="button" variant="outline" onClick={() => { setShowForm(true); setDuplicateError("") }} className="gap-2 border-dashed bg-transparent">
+            <Plus className="size-4" /> Add Offer
+          </Button>
+        </div>
+      )}
+
+      {showForm && (
+        <form onSubmit={handleAddOffer} className="rounded-xl border border-border bg-card p-5 flex flex-col gap-4 max-w-lg">
+          <h3 className="text-sm font-semibold text-foreground">Add Offer</h3>
+          <div>
+            <label className="mb-1 block text-xs font-medium text-muted-foreground">Application *</label>
+            <select required value={form.applicationId} onChange={e => {
+                const app = applications.find(a => a.id === e.target.value)
+                setDuplicateError("")
+                setForm(f => ({
+                  ...f,
+                  applicationId: e.target.value,
+                  baseSalary: app?.salaryMin ? String(app.salaryMin) : f.baseSalary,
+                }))
+              }}
+              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:ring-1 focus:ring-primary">
+              <option value="">Select application…</option>
+              {availableApps.map(a => <option key={a.id} value={a.id}>{a.company} — {a.role}</option>)}
+            </select>
+            {duplicateError && <p className="mt-1 text-xs text-red-400">{duplicateError}</p>}
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            {([
+              { key: "baseSalary", label: `Base Salary (${sym})` },
+              { key: "equityValue", label: `Equity Value (${sym})` },
+              { key: "signingBonus", label: `Signing Bonus (${sym})` },
+              { key: "cliffMonths", label: "Cliff (months)" },
+            ] as const).map(({ key, label }) => (
+              <div key={key}>
+                <label className="mb-1 block text-xs font-medium text-muted-foreground">{label}</label>
+                <input type="number" value={(form as any)[key]}
+                  onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))}
+                  className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:ring-1 focus:ring-primary" />
+              </div>
+            ))}
+          </div>
+          <div>
+            <label className="mb-1 block text-xs font-medium text-muted-foreground">Vesting Schedule</label>
+            <input value={form.vestingSchedule} onChange={e => setForm(f => ({ ...f, vestingSchedule: e.target.value }))}
+              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:ring-1 focus:ring-primary" />
+          </div>
+          <div className="flex gap-2">
+            <button type="submit" disabled={saving || !form.applicationId}
+              className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-50">
+              {saving && <Loader2 className="size-3.5 animate-spin" />} Save Offer
+            </button>
+            <button type="button" onClick={() => { setShowForm(false); setForm(EMPTY_FORM); setDuplicateError("") }}
+              className="rounded-lg border border-border px-4 py-2 text-sm text-muted-foreground hover:text-foreground">
+              Cancel
+            </button>
+          </div>
+        </form>
+      )}
+
       {/* Summary bar */}
       {liveOffers.length > 0 && (
         <div className={cn("grid gap-3", liveOffers.length === 1 ? "grid-cols-1 max-w-sm" : "grid-cols-3")}>
@@ -399,66 +461,6 @@ export function WarRoom() {
             ))}
           </div>
         </div>
-      )}
-
-      {/* Add offer button / form */}
-      {liveOffers.length < 3 && !showForm && (
-        <Button type="button" variant="outline" onClick={() => { setShowForm(true); setDuplicateError("") }} className="gap-2 border-dashed bg-transparent w-fit">
-          <Plus className="size-4" /> Add Offer
-        </Button>
-      )}
-
-      {showForm && (
-        <form onSubmit={handleAddOffer} className="rounded-xl border border-border bg-card p-5 flex flex-col gap-4 max-w-lg">
-          <h3 className="text-sm font-semibold text-foreground">Add Offer</h3>
-          <div>
-            <label className="mb-1 block text-xs font-medium text-muted-foreground">Application *</label>
-            <select required value={form.applicationId} onChange={e => {
-                const app = applications.find(a => a.id === e.target.value)
-                setDuplicateError("")
-                setForm(f => ({
-                  ...f,
-                  applicationId: e.target.value,
-                  baseSalary: app?.salaryMin ? String(app.salaryMin) : f.baseSalary,
-                }))
-              }}
-              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:ring-1 focus:ring-primary">
-              <option value="">Select application…</option>
-              {availableApps.map(a => <option key={a.id} value={a.id}>{a.company} — {a.role}</option>)}
-            </select>
-            {duplicateError && <p className="mt-1 text-xs text-red-400">{duplicateError}</p>}
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            {([
-              { key: "baseSalary", label: `Base Salary (${sym})` },
-              { key: "equityValue", label: `Equity Value (${sym})` },
-              { key: "signingBonus", label: `Signing Bonus (${sym})` },
-              { key: "cliffMonths", label: "Cliff (months)" },
-            ] as const).map(({ key, label }) => (
-              <div key={key}>
-                <label className="mb-1 block text-xs font-medium text-muted-foreground">{label}</label>
-                <input type="number" value={(form as any)[key]}
-                  onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))}
-                  className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:ring-1 focus:ring-primary" />
-              </div>
-            ))}
-          </div>
-          <div>
-            <label className="mb-1 block text-xs font-medium text-muted-foreground">Vesting Schedule</label>
-            <input value={form.vestingSchedule} onChange={e => setForm(f => ({ ...f, vestingSchedule: e.target.value }))}
-              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:ring-1 focus:ring-primary" />
-          </div>
-          <div className="flex gap-2">
-            <button type="submit" disabled={saving || !form.applicationId}
-              className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-50">
-              {saving && <Loader2 className="size-3.5 animate-spin" />} Save Offer
-            </button>
-            <button type="button" onClick={() => { setShowForm(false); setForm(EMPTY_FORM); setDuplicateError("") }}
-              className="rounded-lg border border-border px-4 py-2 text-sm text-muted-foreground hover:text-foreground">
-              Cancel
-            </button>
-          </div>
-        </form>
       )}
 
       {/* Negotiation tips — only with 2+ offers */}

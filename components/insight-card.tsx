@@ -6,8 +6,8 @@ import { type Insight } from "@/lib/dashboard-data"
 
 const CTA_ROUTES: Record<string, string> = {
   "Open War Room": "/war-room",
-  "Go to Tracker": "/",
-  "Review Applications": "/",
+  "Go to Tracker": "/tracker",
+  "Review Applications": "/tracker",
 }
 
 export function InsightCard({ insight }: { insight: Insight }) {

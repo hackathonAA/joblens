@@ -1,13 +1,5 @@
-import { AppHeader } from "@/components/app-header"
-import { KanbanBoard } from "@/components/kanban-board"
+import { redirect } from "next/navigation"
 
 export default function Page() {
-  return (
-    <main className="min-h-svh bg-background">
-      <AppHeader />
-      <div className="px-6 py-6">
-        <KanbanBoard />
-      </div>
-    </main>
-  )
+  redirect("/dashboard")
 }

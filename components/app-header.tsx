@@ -6,21 +6,21 @@ import { UserGreeting } from "@/components/user-greeting"
 import { useCurrency, CURRENCIES } from "@/lib/currency-context"
 
 const NAV_ITEMS = [
-  { href: "/", label: "Tracker" },
-  { href: "/offer-analyzer", label: "Offer Analyzer" },
-  { href: "/war-room", label: "War Room" },
-  { href: "/dashboard", label: "Dashboard" },
-  { href: "/interview-logger", label: "Interviews" },
-  { href: "/jd-analyzer", label: "JD Analyzer" },
+  { href: "/dashboard",         label: "Dashboard" },
+  { href: "/tracker",           label: "Tracker" },
+  { href: "/offer-analyzer",    label: "Offer Analyzer" },
+  { href: "/war-room",          label: "War Room" },
+  { href: "/interview-logger",  label: "Interviews" },
+  { href: "/jd-analyzer",       label: "JD Analyzer" },
 ]
 
 const SUBTITLES: Record<string, string> = {
-  "/": "Track every application across your job search pipeline.",
-  "/offer-analyzer": "Decode your offer letter, clause by clause — in plain English.",
-  "/war-room": "Compare offers side by side and pick the best one.",
-  "/dashboard": "Search velocity dashboard — your job hunt, measured.",
-  "/interview-logger": "Log every round, spot your patterns.",
-  "/jd-analyzer": "Paste any JD — AI extracts skills, flags, and scores your fit.",
+  "/dashboard":       "Search velocity dashboard — your job hunt, measured.",
+  "/tracker":         "Track every application across your job search pipeline.",
+  "/offer-analyzer":  "Decode your offer letter, clause by clause — in plain English.",
+  "/war-room":        "Compare offers side by side and pick the best one.",
+  "/interview-logger":"Log every round, spot your patterns.",
+  "/jd-analyzer":     "Paste any JD — AI extracts skills, flags, and scores your fit.",
 }
 
 export function AppHeader() {
