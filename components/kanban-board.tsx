@@ -317,27 +317,22 @@ export function KanbanBoard() {
         />
       )}
 
-      <div className="mb-5 flex items-center justify-between">
-        <div>
-          <p className="text-[11px] text-muted-foreground/60">Drag cards across stages · Click Details to expand</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setShowArchive(true)}
-            className="flex items-center gap-1.5 rounded-xl border border-border/60 bg-secondary/40 px-3 py-1.5 text-xs font-medium text-muted-foreground transition-all hover:border-border hover:text-foreground"
-          >
-            <Archive className="size-3.5" /> Archive
-            {archiveCount > 0 && (
-              <span className="rounded-full bg-primary/20 text-primary px-1.5 py-0.5 text-[10px] font-semibold">{archiveCount}</span>
-            )}
-          </button>
-          <button
-            onClick={() => setShowEditor(true)}
-            className="flex items-center gap-1.5 rounded-xl border border-border/60 bg-secondary/40 px-3 py-1.5 text-xs font-medium text-muted-foreground transition-all hover:border-border hover:text-foreground"
-          >
-            <Settings className="size-3.5" /> Columns
-          </button>
-        </div>
+      <div className="mb-4 flex items-center justify-end gap-2">
+        <button
+          onClick={() => setShowArchive(true)}
+          className="flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+        >
+          <Archive className="size-3.5" /> Archive
+          {archiveCount > 0 && (
+            <span className="rounded-full bg-secondary px-1.5 py-0.5 text-[10px]">{archiveCount}</span>
+          )}
+        </button>
+        <button
+          onClick={() => setShowEditor(true)}
+          className="flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+        >
+          <Settings className="size-3.5" /> Customize columns
+        </button>
       </div>
 
       <DndContext
