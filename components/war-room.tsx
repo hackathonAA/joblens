@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from "react"
 import { Plus, Trophy, X, Sparkles, Loader2, Pencil, Check, TrendingUp, AlertTriangle, RefreshCw } from "lucide-react"
-import { Button } from "@/components/ui/button"
 import {
   type Offer,
   REC_CONFIG,
@@ -254,15 +253,46 @@ export function WarRoom() {
   return (
     <div className="flex flex-col gap-6">
 
-      {/* Add offer button / form — top of page */}
-      {liveOffers.length < 3 && !showForm && (
-        <div className="flex items-center justify-between">
-          <Button type="button" variant="outline" onClick={() => { setShowForm(true); setDuplicateError("") }} className="gap-2 border-dashed bg-transparent">
-            <Plus className="size-4" /> Add Offer
-          </Button>
-        </div>
-      )}
+      {/* Summary bar — offer cards + Add Offer as last card */}
+      <div className={cn("grid gap-3", liveOffers.length === 0 ? "grid-cols-1" : liveOffers.length === 1 ? "grid-cols-2" : "grid-cols-3")}>
+        {liveOffers.map(o => {
+          const tc = totalComp(o)
+          const isWinner = winner?.id === o.id
+          return (
+            <div key={o.id} className={cn("rounded-xl border border-border bg-card p-4 flex flex-col gap-2", isWinner && "border-emerald-500/40 bg-emerald-500/5")}>
+              <div className="flex items-center justify-between">
+                <span className={cn("flex size-8 items-center justify-center rounded-full text-xs font-bold", o.logo)}>{o.initials}</span>
+                {isWinner && <span className="text-[10px] font-semibold text-emerald-400 flex items-center gap-1"><Trophy className="size-3" />Top pick</span>}
+              </div>
+              <div>
+                <p className="text-sm font-bold text-card-foreground">{o.company}</p>
+                <p className="text-xs text-muted-foreground">{o.role}</p>
+              </div>
+              <div className="mt-1 flex items-center gap-1.5">
+                <span className="text-lg font-bold text-card-foreground">{fmtMoney(tc, sym)}</span>
+                <span className="text-xs text-muted-foreground">/yr total comp</span>
+              </div>
+              <div className="text-xs text-muted-foreground">
+                Base {fmtMoney(o.baseSalary, sym)} + Equity {fmtMoney(o.equityValue / 4, sym)}/yr + Signing {fmtMoney(o.signingBonus / 4, sym)}/yr
+              </div>
+            </div>
+          )
+        })}
 
+        {/* Add Offer as last card in the grid */}
+        {liveOffers.length < 3 && !showForm && (
+          <button
+            type="button"
+            onClick={() => { setShowForm(true); setDuplicateError("") }}
+            className="rounded-xl border border-dashed border-border bg-card p-4 flex flex-col items-center justify-center gap-2 text-muted-foreground hover:border-primary/40 hover:text-foreground hover:bg-primary/5 transition-colors min-h-[120px]"
+          >
+            <Plus className="size-5" />
+            <span className="text-sm font-medium">Add Offer</span>
+          </button>
+        )}
+      </div>
+
+      {/* Add offer form — shown inline below the cards */}
       {showForm && (
         <form onSubmit={handleAddOffer} className="rounded-xl border border-border bg-card p-5 flex flex-col gap-4 max-w-lg">
           <h3 className="text-sm font-semibold text-foreground">Add Offer</h3>
@@ -271,11 +301,7 @@ export function WarRoom() {
             <select required value={form.applicationId} onChange={e => {
                 const app = applications.find(a => a.id === e.target.value)
                 setDuplicateError("")
-                setForm(f => ({
-                  ...f,
-                  applicationId: e.target.value,
-                  baseSalary: app?.salaryMin ? String(app.salaryMin) : f.baseSalary,
-                }))
+                setForm(f => ({ ...f, applicationId: e.target.value, baseSalary: app?.salaryMin ? String(app.salaryMin) : f.baseSalary }))
               }}
               className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:ring-1 focus:ring-primary">
               <option value="">Select application…</option>
@@ -316,32 +342,50 @@ export function WarRoom() {
         </form>
       )}
 
-      {/* Summary bar */}
+      {/* AI Recommendation — right below the offer cards */}
       {liveOffers.length > 0 && (
-        <div className={cn("grid gap-3", liveOffers.length === 1 ? "grid-cols-1 max-w-sm" : "grid-cols-3")}>
-          {liveOffers.map(o => {
-            const tc = totalComp(o)
-            const isWinner = winner?.id === o.id
-            return (
-              <div key={o.id} className={cn("rounded-xl border border-border bg-card p-4 flex flex-col gap-2", isWinner && "border-emerald-500/40 bg-emerald-500/5")}>
-                <div className="flex items-center justify-between">
-                  <span className={cn("flex size-8 items-center justify-center rounded-full text-xs font-bold", o.logo)}>{o.initials}</span>
-                  {isWinner && <span className="text-[10px] font-semibold text-emerald-400 flex items-center gap-1"><Trophy className="size-3" />Top pick</span>}
-                </div>
+        <div className="rounded-xl border border-primary/30 bg-primary/5 p-5 shadow-sm">
+          <div className="flex items-center justify-between gap-2 mb-3">
+            <div className="flex items-center gap-2">
+              <span className="flex size-7 items-center justify-center rounded-md bg-primary/15 text-primary">
+                <Sparkles className="size-4" />
+              </span>
+              <h2 className="text-sm font-bold text-foreground">AI Recommendation</h2>
+              <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">Powered by Amazon Nova</span>
+            </div>
+            <button onClick={() => fetchAiInsights(liveOffers)} disabled={aiLoading}
+              className="text-xs text-muted-foreground hover:text-foreground disabled:opacity-40 flex items-center gap-1">
+              <RefreshCw className={`size-3 ${aiLoading ? "animate-spin" : ""}`} />
+              {aiLoading ? "Analyzing…" : "Refresh"}
+            </button>
+          </div>
+          {aiLoading ? (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Loader2 className="size-4 animate-spin" />
+              Amazon Nova is analyzing your offer{liveOffers.length > 1 ? "s" : ""}…
+            </div>
+          ) : aiInsights ? (
+            <div className="flex flex-col gap-4">
+              <p className="text-sm leading-relaxed text-muted-foreground">{aiInsights.recommendation}</p>
+              {aiInsights.negotiationTips?.length > 0 && (
                 <div>
-                  <p className="text-sm font-bold text-card-foreground">{o.company}</p>
-                  <p className="text-xs text-muted-foreground">{o.role}</p>
+                  <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground flex items-center gap-1.5">
+                    <AlertTriangle className="size-3.5 text-amber-400" /> Negotiation Playbook
+                  </p>
+                  <ul className="flex flex-col gap-2">
+                    {aiInsights.negotiationTips.map((tip, i) => (
+                      <li key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
+                        <span className="mt-1 size-1.5 shrink-0 rounded-full bg-primary" />
+                        {tip}
+                      </li>
+                    ))}
+                  </ul>
                 </div>
-                <div className="mt-1 flex items-center gap-1.5">
-                  <span className="text-lg font-bold text-card-foreground">{fmtMoney(tc, sym)}</span>
-                  <span className="text-xs text-muted-foreground">/yr total comp</span>
-                </div>
-                <div className="text-xs text-muted-foreground">
-                  Base {fmtMoney(o.baseSalary, sym)} + Equity {fmtMoney(o.equityValue / 4, sym)}/yr + Signing {fmtMoney(o.signingBonus / 4, sym)}/yr
-                </div>
-              </div>
-            )
-          })}
+              )}
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">Add at least one offer to get AI-powered recommendations.</p>
+          )}
         </div>
       )}
 
@@ -468,53 +512,6 @@ export function WarRoom() {
         <NegotiationTips offers={liveOffers} winner={winner} sym={sym} />
       )}
 
-      {/* AI Insights */}
-      {liveOffers.length > 0 && (
-        <div className="rounded-xl border border-primary/30 bg-primary/5 p-5 shadow-sm">
-          <div className="flex items-center justify-between gap-2 mb-3">
-            <div className="flex items-center gap-2">
-              <span className="flex size-7 items-center justify-center rounded-md bg-primary/15 text-primary">
-                <Sparkles className="size-4" />
-              </span>
-              <h2 className="text-sm font-bold text-foreground">AI Recommendation</h2>
-              <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">Powered by Amazon Nova</span>
-            </div>
-            <button onClick={() => fetchAiInsights(liveOffers)} disabled={aiLoading}
-              className="text-xs text-muted-foreground hover:text-foreground disabled:opacity-40 flex items-center gap-1">
-              <RefreshCw className={`size-3 ${aiLoading ? "animate-spin" : ""}`} />
-              {aiLoading ? "Analyzing…" : "Refresh"}
-            </button>
-          </div>
-
-          {aiLoading ? (
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Loader2 className="size-4 animate-spin" />
-              Amazon Nova is analyzing your offer{liveOffers.length > 1 ? "s" : ""}…
-            </div>
-          ) : aiInsights ? (
-            <div className="flex flex-col gap-4">
-              <p className="text-sm leading-relaxed text-muted-foreground">{aiInsights.recommendation}</p>
-              {aiInsights.negotiationTips?.length > 0 && (
-                <div>
-                  <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground flex items-center gap-1.5">
-                    <AlertTriangle className="size-3.5 text-amber-400" /> Negotiation Playbook
-                  </p>
-                  <ul className="flex flex-col gap-2">
-                    {aiInsights.negotiationTips.map((tip, i) => (
-                      <li key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
-                        <span className="mt-1 size-1.5 shrink-0 rounded-full bg-primary" />
-                        {tip}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-            </div>
-          ) : (
-            <p className="text-sm text-muted-foreground">Add at least one offer to get AI-powered recommendations.</p>
-          )}
-        </div>
-      )}
     </div>
   )
 }
